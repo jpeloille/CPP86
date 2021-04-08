@@ -13,9 +13,13 @@ uint32_t easeg;
 uint8_t rm,reg,mod,rmdat;
 uint8_t mem[0xFFFFF];
 
+
+uint16_t wOffset;
+uint16_t wSegbase;
+
 iapx86::iapx86()
 {
-     instDecoder[0xEA] = &iapx86::JMP;
+     instDecoder[0xEA] = &iapx86::JMP_FAR_DIRECT;
 }
 
 iapx86::~iapx86()
@@ -89,9 +93,11 @@ uint16_t iapx86::getImmediateWord()
     {
         uint8_t low = mem[CS<<4 | IP];
         IP++;
+        cycles--;
 
         uint8_t  high = mem[CS << 4 | IP];
         IP++;
+        cycles--;
 
         return (high << 8 | low);
     }
@@ -135,9 +141,15 @@ void iapx86::exec86(int requestedCycles)
     }
 }
 
-uint8_t iapx86::JMP()
+uint8_t iapx86::JMP_FAR_DIRECT()
 {
-    printf("Instruction 0xEA ! %01X\n", cycles);
+    wOffset = getImmediateWord();
+    wSegbase = getImmediateWord();
+
+    CS = wSegbase;
+    IP = wOffset;
+
+    printf("Opcode: %02X - IP: %04X - CS: %04X\n", opcode, IP, CS);
     return 0;
 }
 

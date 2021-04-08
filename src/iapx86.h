@@ -12,7 +12,10 @@ private:
     uint8_t (iapx86::*instDecoder[0xFF])();
 
 private:
-    uint8_t JMP();
+    uint8_t JMP_NEAR_RELATIVE();
+    uint8_t JMP_NEAR_INDIRECT();
+    uint8_t JMP_FAR_DIRECT();
+    uint8_t JMP_FAR_INDIRECT();
 
 private:
     void fetchea();
