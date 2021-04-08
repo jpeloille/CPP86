@@ -141,6 +141,17 @@ void iapx86::exec86(int requestedCycles)
     }
 }
 
+
+uint8_t  iapx86::JMP_NEAR_RELATIVE()
+{
+
+}
+
+uint8_t  iapx86::JMP_NEAR_INDIRECT()
+{
+
+}
+
 uint8_t iapx86::JMP_FAR_INDIRECT()
 {
 
