@@ -1,0 +1,28 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/jpeloille/Documents/Clions_Projects/x86++/main.cpp
+iostream
+-
+src/iapx86.h
+/home/jpeloille/Documents/Clions_Projects/x86++/src/iapx86.h
+
+/home/jpeloille/Documents/Clions_Projects/x86++/src/iapx86.cpp
+cstdio
+-
+intel.h
+/home/jpeloille/Documents/Clions_Projects/x86++/src/intel.h
+iapx86.h
+/home/jpeloille/Documents/Clions_Projects/x86++/src/iapx86.h
+
+/home/jpeloille/Documents/Clions_Projects/x86++/src/iapx86.h
+
+/home/jpeloille/Documents/Clions_Projects/x86++/src/intel.h
+stdint.h
+-
+
