@@ -7,10 +7,7 @@ int main() {
     std::cout << "Hello, World!" << std::endl;
     //cpuReset();
     iapx86 cpu;
-  cpu.cpuReset();
-    cpu.exec86(16);
-
-
-
-    return 0;
+    cpu.cpuReset();
+    cpu.exec86(100);
+return 0;
 }

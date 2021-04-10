@@ -19,7 +19,9 @@ uint16_t wSegbase;
 
 iapx86::iapx86()
 {
-     instDecoder[0xEA] = &iapx86::JMP_FAR_DIRECT;
+    instDecoder[0x8C] = &iapx86::mov_rmw_sr;
+    instDecoder[0x8E] = &iapx86::mov_sr_rmw;
+    instDecoder[0xEA] = &iapx86::JMP_FAR_DIRECT;
 }
 
 iapx86::~iapx86()
@@ -29,7 +31,7 @@ iapx86::~iapx86()
 
 void iapx86::fetchea()
     {
-        rmdat=readmemb(CS<<4 + IP); IP++;
+        rmdat=getImmediateByte();
         reg=(rmdat>>3)&7;
         mod=rmdat>>6;
         rm=rmdat&7;
@@ -50,7 +52,7 @@ void iapx86::fetchea()
                 break;
 
             case 1:
-                eaaddr=readmemb(CS<<4 + IP); IP++;
+                eaaddr=getImmediateByte();
                 if (eaaddr&0x80) eaaddr|=0xFF00;
                 switch (rm)
                 {
@@ -89,16 +91,23 @@ uint8_t iapx86::readmemb(uint32_t addr)
         return mem[addr];
     }
 
+uint8_t  iapx86::getImmediateByte()
+{
+    uint8_t byte = mem[CS<<4 | IP];
+    IP++; cycles--;
+    printf(" %02X", byte);
+    return byte;
+}
+
 uint16_t iapx86::getImmediateWord()
     {
         uint8_t low = mem[CS<<4 | IP];
-        IP++;
-        cycles--;
+        IP++; cycles--;
 
         uint8_t  high = mem[CS << 4 | IP];
-        IP++;
-        cycles--;
+        IP++; cycles--;
 
+        printf(" %02X %00X", low, high);
         return (high << 8 | low);
     }
 
@@ -130,17 +139,30 @@ void iapx86::cpuReset()
 void iapx86::exec86(int requestedCycles)
 {
     cycles += requestedCycles;
-    printf("Cycles = %02i\n", cycles);
     while (cycles>0)
     {
         opcode=readmemb(CS<<4 | IP);
-        printf("%05X - ", CS<<4 | IP);
+        printf("\nES %04x - CS %04X - SS %04X - DS %04X -- IP %04X", ES, CS, SS, DS, IP);
+        printf("\n%05X - ", CS<<4 | IP);
         IP++;
-        printf("%02X %02i\n", opcode, cycles);
+        printf("%02X", opcode);
         (this->*instDecoder[opcode])();
     }
 }
 
+uint8_t iapx86::mov_rmw_sr()
+{
+    fetchea();
+    iapx86_Registers[rm].w = iapx86_Segments[reg];
+    return 0;
+}
+
+uint8_t iapx86::mov_sr_rmw()
+{
+    fetchea();
+    iapx86_Segments[reg]=iapx86_Registers[rm].w;
+    return 0;
+}
 
 uint8_t  iapx86::JMP_NEAR_RELATIVE()
 {
@@ -165,7 +187,6 @@ uint8_t iapx86::JMP_FAR_DIRECT()
     CS = wSegbase;
     IP = wOffset;
 
-    printf("Opcode: %02X - IP: %04X - CS: %04X\n", opcode, IP, CS);
     return 0;
 }
 

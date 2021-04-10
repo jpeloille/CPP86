@@ -11,7 +11,19 @@ class iapx86
 private:
     uint8_t (iapx86::*instDecoder[0xFF])();
 
+ /*
+  * Mnemonic notation :
+  * ib : immediate byte         rb : register byte
+  * iw : immediate word         rw : register word
+  * mb : memory byte            rmb : register or memory byte
+  * mw : memory word            rmb : register or memory byte
+  * sr : segment register
+  */
+
 private:
+    uint8_t mov_rmw_sr();
+    uint8_t mov_sr_rmw();
+
     uint8_t JMP_NEAR_RELATIVE();
     uint8_t JMP_NEAR_INDIRECT();
     uint8_t JMP_FAR_DIRECT();
@@ -20,6 +32,7 @@ private:
 private:
     void fetchea();
     uint8_t readmemb(uint32_t addr);
+    uint8_t  getImmediateByte();
     uint16_t getImmediateWord();
     static int loadbios();
 
