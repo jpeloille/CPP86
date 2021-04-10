@@ -37,13 +37,14 @@ typedef union
 
 wordRegister iapx86_Registers[7];
 
+#define IP instructionPointer
+uint16_t instructionPointer;
+
 #define ES iapx86_Segments[0]
 #define CS iapx86_Segments[1]
 #define SS iapx86_Segments[2]
 #define DS iapx86_Segments[3]
-uint16_t iapx86_Segments[3];
 
-#define IP instructionPointer
-uint16_t instructionPointer;
+uint16_t iapx86_Segments[3];
 
 #endif //X86___INTEL_H

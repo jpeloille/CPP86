@@ -142,8 +142,8 @@ void iapx86::exec86(int requestedCycles)
     while (cycles>0)
     {
         opcode=readmemb(CS<<4 | IP);
-        printf("\nES %04x - CS %04X - SS %04X - DS %04X -- IP %04X", ES, CS, SS, DS, IP);
-        printf("\n%05X - ", CS<<4 | IP);
+        //printf("\nES %04x - CS %04X - SS %04X - DS %04X -- IP %04X", ES, CS, SS, DS, IP);
+        printf("\n%04X:%04X ", CS, IP);
         IP++;
         printf("%02X", opcode);
         (this->*instDecoder[opcode])();
