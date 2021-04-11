@@ -13,12 +13,16 @@ uint32_t easeg;
 uint8_t rm,reg,mod,rmdat;
 uint8_t mem[0xFFFFF];
 
+uint8_t bLeftOperand;
+uint8_t bRightOperand;
 
 uint16_t wOffset;
 uint16_t wSegbase;
 
 iapx86::iapx86()
 {
+    instDecoder[0x00] = &iapx86::add_rmb_rb;
+    instDecoder[0xB0] = &iapx86::mov_AL_ib;
     instDecoder[0x8C] = &iapx86::mov_rmw_sr;
     instDecoder[0x8E] = &iapx86::mov_sr_rmw;
     instDecoder[0xEA] = &iapx86::JMP_FAR_DIRECT;
@@ -83,6 +87,7 @@ void iapx86::fetchea()
                 break;
         }
         eaaddr&=0xFFFF;
+        printf(" - (%02X-%02X-%02X)", mod, reg, rm);
     }
 
 uint8_t iapx86::readmemb(uint32_t addr)
@@ -142,12 +147,37 @@ void iapx86::exec86(int requestedCycles)
     while (cycles>0)
     {
         opcode=readmemb(CS<<4 | IP);
-        //printf("\nES %04x - CS %04X - SS %04X - DS %04X -- IP %04X", ES, CS, SS, DS, IP);
+        printf("\nES %04x - CS %04X - SS %04X - DS %04X -- IP %04X -- Flags %04X", ES, CS, SS, DS, IP,flags);
         printf("\n%04X:%04X ", CS, IP);
         IP++;
         printf("%02X", opcode);
         (this->*instDecoder[opcode])();
     }
+}
+
+
+/* Arithmetics methods - Compute flags */
+uint8_t iapx86::Add8(uint8_t leftOpernad, uint8_t righrOperand)
+{
+    uint16_t result = (uint16_t) leftOpernad + (uint16_t) righrOperand;
+
+}
+
+
+/*-- 0x00 --*/
+uint8_t iapx86::add_rmb_rb()
+{
+    fetchea();
+    bLeftOperand = readmemb(easeg <<4 | eaaddr);
+    bRightOperand = iapx86_Registers[reg].b.l;
+    //printf(" - Left operand at adress %05X : %02X", easeg<<4 | eaaddr, bLeftOperand);
+    //printf(" - Right operand : %02X", bRightOperand);
+}
+
+uint8_t  iapx86::mov_AL_ib()
+{
+    AL = getImmediateByte();
+    return 0;
 }
 
 uint8_t iapx86::mov_rmw_sr()

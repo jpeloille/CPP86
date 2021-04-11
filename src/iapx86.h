@@ -11,16 +11,24 @@ class iapx86
 private:
     uint8_t (iapx86::*instDecoder[0xFF])();
 
- /*
-  * Mnemonic notation :
-  * ib : immediate byte         rb : register byte
-  * iw : immediate word         rw : register word
-  * mb : memory byte            rmb : register or memory byte
-  * mw : memory word            rmb : register or memory byte
-  * sr : segment register
-  */
-
+/* Instructions set methods */
 private:
+    /*
+     * Mnemonic notation :
+     * ib : immediate byte         rb : register byte
+     * iw : immediate word         rw : register word
+     * mb : memory byte            rmb : register or memory byte
+     * mw : memory word            rmb : register or memory byte
+     * sr : segment register
+     */
+
+    uint8_t add_rmb_rb();
+    uint8_t add_rmw_rw();
+    uint8_t add_rb_rmb();
+    uint8_t add_rw_rmw();
+    uint8_t add_AL_ib();
+    uint8_t add_AX_iw();
+    uint8_t mov_AL_ib();
     uint8_t mov_rmw_sr();
     uint8_t mov_sr_rmw();
 
@@ -29,11 +37,21 @@ private:
     uint8_t JMP_FAR_DIRECT();
     uint8_t JMP_FAR_INDIRECT();
 
+/* Arithmetics methods */
+private:
+    uint8_t Add8(uint8_t leftOpernad, uint8_t righrOperand);
+
 private:
     void fetchea();
     uint8_t readmemb(uint32_t addr);
     uint8_t  getImmediateByte();
     uint16_t getImmediateWord();
+    uint8_t  getRegByte();
+    uint16_t getRegWord();
+
+    uint8_t setRegByte();
+    uint16_t setRegWord();
+
     static int loadbios();
 
 

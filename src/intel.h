@@ -35,7 +35,7 @@ typedef union
     } b;
 } wordRegister;
 
-wordRegister iapx86_Registers[7];
+wordRegister iapx86_Registers[8];
 
 #define IP instructionPointer
 uint16_t instructionPointer;
@@ -44,7 +44,17 @@ uint16_t instructionPointer;
 #define CS iapx86_Segments[1]
 #define SS iapx86_Segments[2]
 #define DS iapx86_Segments[3]
+uint16_t iapx86_Segments[4];
 
-uint16_t iapx86_Segments[3];
+uint16_t flags;
+
+#define C_FLAG 0x001
+#define P_FLAG 0x004
+#define A_FLAG 0x010
+#define Z_FLAG 0x040
+#define N_FLAG 0x080
+#define I_FLAG 0x200
+#define D_FLAG 0x400
+#define V_FLAG 0x800
 
 #endif //X86___INTEL_H
