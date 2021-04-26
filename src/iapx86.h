@@ -42,15 +42,21 @@ private:
     uint8_t Add8(uint8_t leftOpernad, uint8_t righrOperand);
 
 private:
-    void fetchea();
+    void decode_ModRM();
+
+    inline uint8_t readByteRegister();
+    inline uint8_t readByteEffectiveAddress();
+    inline uint16_t readWordRegister();
+    inline uint16_t readWordEffectiveAdress();
+    inline uint16_t readWordAbsoluteAdress(uint32_t addr);
+
+    void writeByteRegister(uint8_t data);
+
     uint8_t readmemb(uint32_t addr);
     uint8_t  getImmediateByte();
     uint16_t getImmediateWord();
-    uint8_t  getRegByte();
-    uint16_t getRegWord();
 
-    uint8_t setRegByte();
-    uint16_t setRegWord();
+
 
     static int loadbios();
 

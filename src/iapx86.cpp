@@ -10,7 +10,7 @@ int cycles = 0;
 uint8_t opcode;
 uint32_t eaaddr;
 uint32_t easeg;
-uint8_t rm,reg,mod,rmdat;
+uint8_t rm,reg,mod,ModRM;
 uint8_t mem[0xFFFFF];
 
 uint8_t bLeftOperand;
@@ -18,6 +18,8 @@ uint8_t bRightOperand;
 
 uint16_t wOffset;
 uint16_t wSegbase;
+uint8_t  disp8;
+uint16_t disp16;
 
 iapx86::iapx86()
 {
@@ -33,12 +35,12 @@ iapx86::~iapx86()
 
 }
 
-void iapx86::fetchea()
+void iapx86::decode_ModRM()
     {
-        rmdat=getImmediateByte();
-        reg=(rmdat>>3)&7;
-        mod=rmdat>>6;
-        rm=rmdat&7;
+        reg=(ModRM>>3)&7;
+        mod=ModRM>>6;
+        rm=ModRM&7;
+
         switch (mod)
         {
             case 0:
@@ -56,45 +58,98 @@ void iapx86::fetchea()
                 break;
 
             case 1:
-                eaaddr=getImmediateByte();
-                if (eaaddr&0x80) eaaddr|=0xFF00;
+                disp8=getImmediateByte();
+                //if (disp8&0x80) disp8|=0xFF00;
                 switch (rm)
                 {
-                    case 0: eaaddr+=BX+SI; easeg=DS; cycles-=11; break;
-                    case 1: eaaddr+=BX+DI; easeg=DS; cycles-=12; break;
-                    case 2: eaaddr+=BP+SI; easeg=SS; cycles-=12; break;
-                    case 3: eaaddr+=BP+DI; easeg=SS; cycles-=11; break;
-                    case 4: eaaddr+=SI; easeg=DS; cycles-=9; break;
-                    case 5: eaaddr+=DI; easeg=DS; cycles-=9; break;
-                    case 6: eaaddr+=BP; easeg=SS; cycles-=9; break;
-                    case 7: eaaddr+=BX; easeg=DS; cycles-=9; break;
+                    case 0: eaaddr=BX+SI+disp8; easeg=DS; cycles-=11; break;
+                    case 1: eaaddr=BX+DI+disp8; easeg=DS; cycles-=12; break;
+                    case 2: eaaddr=BP+SI+disp8; easeg=SS; cycles-=12; break;
+                    case 3: eaaddr=BP+DI+disp8; easeg=SS; cycles-=11; break;
+                    case 4: eaaddr=SI+disp8; easeg=DS; cycles-=9; break;
+                    case 5: eaaddr=DI+disp8; easeg=DS; cycles-=9; break;
+                    case 6: eaaddr=BP+disp8; easeg=SS; cycles-=9; break;
+                    case 7: eaaddr=BX+disp8; easeg=DS; cycles-=9; break;
                 }
                 break;
 
             case 2:
-                eaaddr=getImmediateWord();
+                disp16=getImmediateWord();
                 switch (rm)
                 {
-                    case 0: eaaddr+=BX+SI; easeg=DS; cycles-=11; break;
-                    case 1: eaaddr+=BX+DI; easeg=DS; cycles-=12; break;
-                    case 2: eaaddr+=BP+SI; easeg=SS; cycles-=12; break;
-                    case 3: eaaddr+=BP+DI; easeg=SS; cycles-=11; break;
-                    case 4: eaaddr+=SI; easeg=DS; cycles-=9; break;
-                    case 5: eaaddr+=DI; easeg=DS; cycles-=9; break;
-                    case 6: eaaddr+=BP; easeg=SS; cycles-=9; break;
-                    case 7: eaaddr+=BX; easeg=DS; cycles-=9; break;
+                    case 0: eaaddr=BX+SI+disp16; easeg=DS; cycles-=11; break;
+                    case 2: eaaddr=BP+SI+disp16; easeg=SS; cycles-=12; break;
+                    case 3: eaaddr=BP+DI+disp16; easeg=SS; cycles-=11; break;
+                    case 4: eaaddr=SI+disp16; easeg=DS; cycles-=9; break;
+                    case 5: eaaddr=DI+disp16; easeg=DS; cycles-=9; break;
+                    case 6: eaaddr=BP+disp16; easeg=SS; cycles-=9; break;
+                    case 7: eaaddr=BX+disp16; easeg=DS; cycles-=9; break;
                 }
                 break;
         }
         eaaddr&=0xFFFF;
-        printf(" - (%02X-%02X-%02X)", mod, reg, rm);
+        //printf(" - (%02X-%02X-%02X)", mod, reg, rm);
     }
+
+inline uint8_t iapx86::readByteRegister()
+{
+    return ((reg&4)?iapx86_Registers[reg&3].b.h:iapx86_Registers[reg&3].b.l);
+}
+
+inline uint8_t iapx86::readByteEffectiveAddress()
+{
+    if (mod==3)
+        return (rm&4)?iapx86_Registers[rm&3].b.h:iapx86_Registers[rm&3].b.l;
+    cycles-=3;
+    return readmemb(easeg<<4 +eaaddr);
+}
+
+inline uint16_t iapx86::readWordRegister()
+{
+
+}
+
+inline uint16_t iapx86::readWordEffectiveAdress()
+{
+    if (mod==3)
+        return iapx86_Registers[rm].w;
+    cycles-=3;
+    return readmemw(easeg,eaaddr);
+}
+
+void iapx86::writeByteRegister(uint8_t data)
+{
+    if (reg&4) iapx86_Registers[reg&3].b.h=data;
+    else iapx86_Registers[reg&3].b.l=data;
+}
+
 
 uint8_t iapx86::readmemb(uint32_t addr)
     {
         cycles--;
         return mem[addr];
     }
+
+inline uint16_t iapx86::readWordAbsoluteAdress(uint32_t addr)
+{
+    uint8_t low = mem[addr];
+    cycles--;
+
+    uint8_t  high = mem[addr++];
+    cycles--;
+
+    printf(" %02X %00X", low, high);
+    return (high << 8 | low);
+}
+
+inline uint8_t iapx86::readByteEffectiveAddress()
+{
+    if (mod==3)
+        return (rm&4)?iapx86_Registers[rm&3].b.h:iapx86_Registers[rm&3].b.l;
+    cycles-=3;
+    return readmemb(easeg <<4 | eaaddr);
+}
+
 
 uint8_t  iapx86::getImmediateByte()
 {
@@ -167,11 +222,14 @@ uint8_t iapx86::Add8(uint8_t leftOpernad, uint8_t righrOperand)
 /*-- 0x00 --*/
 uint8_t iapx86::add_rmb_rb()
 {
-    fetchea();
-    bLeftOperand = readmemb(easeg <<4 | eaaddr);
-    bRightOperand = iapx86_Registers[reg].b.l;
-    //printf(" - Left operand at adress %05X : %02X", easeg<<4 | eaaddr, bLeftOperand);
-    //printf(" - Right operand : %02X", bRightOperand);
+    ModRM=getImmediateByte();
+    decode_ModRM();
+    bLeftOperand = readByteEffectiveAddress();
+    bRightOperand = readByteRegister();
+
+    printf(" - Left operand at adress %05X : %02X", easeg<<4 | eaaddr, bLeftOperand);
+    printf(" - Right operand : %02X", bRightOperand);
+    printf(" - Result : %03X", bRightOperand+=bLeftOperand);
 }
 
 uint8_t  iapx86::mov_AL_ib()
@@ -182,14 +240,16 @@ uint8_t  iapx86::mov_AL_ib()
 
 uint8_t iapx86::mov_rmw_sr()
 {
-    fetchea();
+    ModRM=getImmediateByte();
+    decode_ModRM();
     iapx86_Registers[rm].w = iapx86_Segments[reg];
     return 0;
 }
 
 uint8_t iapx86::mov_sr_rmw()
 {
-    fetchea();
+    ModRM=getImmediateByte();
+    decode_ModRM();
     iapx86_Segments[reg]=iapx86_Registers[rm].w;
     return 0;
 }

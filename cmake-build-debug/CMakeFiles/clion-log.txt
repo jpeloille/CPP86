@@ -1,4 +1,4 @@
-/home/jpeloille/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/203.7717.62/bin/cmake/linux/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /home/jpeloille/Documents/Clions_Projects/x86++
+/home/jpeloille/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/203.7148.70/bin/cmake/linux/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /home/jpeloille/CLionProjects/x86__
 -- The C compiler identification is GNU 9.3.0
 -- The CXX compiler identification is GNU 9.3.0
 -- Check for working C compiler: /usr/bin/cc
@@ -15,4 +15,4 @@
 -- Detecting CXX compile features - done
 -- Configuring done
 -- Generating done
--- Build files have been written to: /home/jpeloille/Documents/Clions_Projects/x86++/cmake-build-debug
+-- Build files have been written to: /home/jpeloille/CLionProjects/x86__/cmake-build-debug
