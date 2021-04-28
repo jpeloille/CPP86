@@ -6,6 +6,12 @@
 
 #IncludeRegexTransform: 
 
+/home/jpeloille/CLionProjects/x86__/main.cpp
+iostream
+-
+src/iapx86.h
+/home/jpeloille/CLionProjects/x86__/src/iapx86.h
+
 /home/jpeloille/CLionProjects/x86__/src/iapx86.cpp
 cstdio
 -

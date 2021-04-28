@@ -44,15 +44,20 @@ private:
 private:
     void decode_ModRM();
 
-    inline uint8_t readByteRegister();
-    inline uint8_t readByteEffectiveAddress();
-    inline uint16_t readWordRegister();
-    inline uint16_t readWordEffectiveAdress();
-    inline uint16_t readWordAbsoluteAdress(uint32_t addr);
+    // R/W directly to the selected register //
+    inline uint8_t ReadByte_Register();
+    inline uint16_t ReadWord_Register();
+    void WriteByte_Register(uint8_t data);
+    void WriteWord_Register(uint16_t data);
 
-    void writeByteRegister(uint8_t data);
+    // R/W switching Effective Address //
+    inline uint8_t ReadByte_EffectiveAddress();
+    inline uint16_t ReadWord_EffectiveAddress();
 
-    uint8_t readmemb(uint32_t addr);
+    // R/W to memory using Physical Address //
+    uint8_t ReadByte_Memory(uint32_t physicalAddress);
+    uint16_t ReadWord_Memory(uint32_t physicalAddress);
+
     uint8_t  getImmediateByte();
     uint16_t getImmediateWord();
 

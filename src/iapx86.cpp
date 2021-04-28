@@ -2,6 +2,10 @@
 // Created by jpeloille on 4/4/21.
 //
 
+/*
+ * Physical Address = Segment << 4 | Offset.
+ */
+
 #include <cstdio>
 #include "intel.h"
 #include "iapx86.h"
@@ -91,46 +95,51 @@ void iapx86::decode_ModRM()
         //printf(" - (%02X-%02X-%02X)", mod, reg, rm);
     }
 
-inline uint8_t iapx86::readByteRegister()
+inline uint8_t iapx86::ReadByte_Register()
 {
     return ((reg&4)?iapx86_Registers[reg&3].b.h:iapx86_Registers[reg&3].b.l);
 }
 
-inline uint8_t iapx86::readByteEffectiveAddress()
-{
-    if (mod==3)
-        return (rm&4)?iapx86_Registers[rm&3].b.h:iapx86_Registers[rm&3].b.l;
-    cycles-=3;
-    return readmemb(easeg<<4 +eaaddr);
-}
-
-inline uint16_t iapx86::readWordRegister()
-{
-
-}
-
-inline uint16_t iapx86::readWordEffectiveAdress()
+inline uint16_t iapx86::ReadWord_Register()
 {
     if (mod==3)
         return iapx86_Registers[rm].w;
+
     cycles-=3;
-    return readmemw(easeg,eaaddr);
+    return ReadWord_Memory(easeg << 4 | eaaddr);
 }
 
-void iapx86::writeByteRegister(uint8_t data)
+inline uint8_t iapx86::ReadByte_EffectiveAddress()
+{
+    if (mod==3)
+        return (rm&4)?iapx86_Registers[rm&3].b.h:iapx86_Registers[rm&3].b.l;
+
+    cycles-=3;
+    return ReadByte_Memory(easeg<<4 | eaaddr);
+}
+
+inline uint16_t iapx86::ReadWord_EffectiveAddress()
+{
+    if (mod==3)
+        return iapx86_Registers[rm].w;
+
+    cycles-=3;
+    return  ReadWord_Memory(easeg <<4 | eaaddr);
+}
+
+void iapx86::WriteByte_Register(uint8_t data)
 {
     if (reg&4) iapx86_Registers[reg&3].b.h=data;
     else iapx86_Registers[reg&3].b.l=data;
 }
 
+uint8_t iapx86::ReadByte_Memory(uint32_t addr)
+{
+    cycles--;
+    return mem[addr];
+}
 
-uint8_t iapx86::readmemb(uint32_t addr)
-    {
-        cycles--;
-        return mem[addr];
-    }
-
-inline uint16_t iapx86::readWordAbsoluteAdress(uint32_t addr)
+inline uint16_t  iapx86::ReadWord_Memory(uint32_t addr)
 {
     uint8_t low = mem[addr];
     cycles--;
@@ -138,22 +147,15 @@ inline uint16_t iapx86::readWordAbsoluteAdress(uint32_t addr)
     uint8_t  high = mem[addr++];
     cycles--;
 
+    /*
     printf(" %02X %00X", low, high);
     return (high << 8 | low);
+     */
 }
-
-inline uint8_t iapx86::readByteEffectiveAddress()
-{
-    if (mod==3)
-        return (rm&4)?iapx86_Registers[rm&3].b.h:iapx86_Registers[rm&3].b.l;
-    cycles-=3;
-    return readmemb(easeg <<4 | eaaddr);
-}
-
 
 uint8_t  iapx86::getImmediateByte()
 {
-    uint8_t byte = mem[CS<<4 | IP];
+    uint8_t byte = mem[CS <<4 | IP];
     IP++; cycles--;
     printf(" %02X", byte);
     return byte;
@@ -161,7 +163,7 @@ uint8_t  iapx86::getImmediateByte()
 
 uint16_t iapx86::getImmediateWord()
     {
-        uint8_t low = mem[CS<<4 | IP];
+        uint8_t low = mem[CS << 4 | IP];
         IP++; cycles--;
 
         uint8_t  high = mem[CS << 4 | IP];
@@ -170,6 +172,16 @@ uint16_t iapx86::getImmediateWord()
         printf(" %02X %00X", low, high);
         return (high << 8 | low);
     }
+
+void ComputeAdd8_Flags(uint8_t leftOperand, uint8_t rightOperand)
+{
+    uint16_t result = (uint16_t)leftOperand + (uint16_t)rightOperand;
+    flags&=~0x8D5;
+    flags|=znptable8[result&0xFF];
+    if (result&0x100) flags|=C_FLAG;
+    if (!((leftOperand^rightOperand)&0x80)&&((leftOperand^result)&0x80)) flags|=V_FLAG;
+    if (((leftOperand&0xF)+(rightOperand&0xF))&0x10)      flags|=A_FLAG;
+}
 
 int iapx86::loadbios()
     {
@@ -201,7 +213,7 @@ void iapx86::exec86(int requestedCycles)
     cycles += requestedCycles;
     while (cycles>0)
     {
-        opcode=readmemb(CS<<4 | IP);
+        opcode=ReadByte_Memory(CS<<4 | IP);
         printf("\nES %04x - CS %04X - SS %04X - DS %04X -- IP %04X -- Flags %04X", ES, CS, SS, DS, IP,flags);
         printf("\n%04X:%04X ", CS, IP);
         IP++;
@@ -210,7 +222,6 @@ void iapx86::exec86(int requestedCycles)
     }
 }
 
-
 /* Arithmetics methods - Compute flags */
 uint8_t iapx86::Add8(uint8_t leftOpernad, uint8_t righrOperand)
 {
@@ -218,14 +229,13 @@ uint8_t iapx86::Add8(uint8_t leftOpernad, uint8_t righrOperand)
 
 }
 
-
 /*-- 0x00 --*/
 uint8_t iapx86::add_rmb_rb()
 {
     ModRM=getImmediateByte();
     decode_ModRM();
-    bLeftOperand = readByteEffectiveAddress();
-    bRightOperand = readByteRegister();
+    bLeftOperand = ReadByte_EffectiveAddress();
+    bRightOperand = ReadByte_Register();
 
     printf(" - Left operand at adress %05X : %02X", easeg<<4 | eaaddr, bLeftOperand);
     printf(" - Right operand : %02X", bRightOperand);
