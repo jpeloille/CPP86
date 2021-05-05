@@ -46,7 +46,15 @@ uint16_t instructionPointer;
 #define DS iapx86_Segments[3]
 uint16_t iapx86_Segments[4];
 
-uint16_t flags;
+bool parityFlag;
+bool carryFlag;
+bool auxiliaryCarryFlag;
+bool directionflag;
+bool interruptEnableFlag;
+bool overflowFlag;
+bool signFlag;
+bool trapFlag;
+bool zeroFlag;
 
 #define C_FLAG 0x001
 #define P_FLAG 0x004
@@ -56,5 +64,8 @@ uint16_t flags;
 #define I_FLAG 0x200
 #define D_FLAG 0x400
 #define V_FLAG 0x800
+uint16_t flags;
+
+
 
 #endif //X86___INTEL_H

@@ -8,8 +8,9 @@
 
 class iapx86
 {
+
 private:
-    uint8_t (iapx86::*instDecoder[0xFF])();
+    void (iapx86::*instDecoder[0xFF])();
 
 /* Instructions set methods */
 private:
@@ -22,20 +23,17 @@ private:
      * sr : segment register
      */
 
-    uint8_t add_rmb_rb();
-    uint8_t add_rmw_rw();
-    uint8_t add_rb_rmb();
-    uint8_t add_rw_rmw();
-    uint8_t add_AL_ib();
-    uint8_t add_AX_iw();
-    uint8_t mov_AL_ib();
-    uint8_t mov_rmw_sr();
-    uint8_t mov_sr_rmw();
+    void ADD_EAb_REGb();
+    void ADD_EAw_REGw();
 
-    uint8_t JMP_NEAR_RELATIVE();
-    uint8_t JMP_NEAR_INDIRECT();
-    uint8_t JMP_FAR_DIRECT();
-    uint8_t JMP_FAR_INDIRECT();
+    void mov_AL_ib();
+    void mov_rmw_sr();
+    void mov_sr_rmw();
+
+    void JMP_NEAR_RELATIVE();
+    void JMP_NEAR_INDIRECT();
+    void JMP_FAR_DIRECT();
+    void JMP_FAR_INDIRECT();
 
 /* Arithmetics methods */
 private:
@@ -53,10 +51,13 @@ private:
     // R/W switching Effective Address //
     inline uint8_t ReadByte_EffectiveAddress();
     inline uint16_t ReadWord_EffectiveAddress();
+    inline void WriteByte_EffectiveAddress(uint8_t data);
 
     // R/W to memory using Physical Address //
     uint8_t ReadByte_Memory(uint32_t physicalAddress);
     uint16_t ReadWord_Memory(uint32_t physicalAddress);
+    void WriteByte_Memory(uint32_t physicalAddress, uint8_t data);
+    void WriteWord_Memory(uint32_t physicalAddress, uint16_t data);
 
     uint8_t  getImmediateByte();
     uint16_t getImmediateWord();
