@@ -25,6 +25,20 @@ private:
 
     void ADD_EAb_REGb();
     void ADD_EAw_REGw();
+    void ADD_REGb_EAb();
+    void ADD_REGw_EAw();
+    void ADD_AL_Data8();
+    void ADD_AX_Data16();
+    void PUSH_ES();
+    void POP_ES();
+    void OR_EAb_REGb();
+    void OR_EAw_REGw();
+    void OR_REGb_EAb();
+    void OR_REGw_EAw();
+    void OR_AL_Data8();
+    void OR_AX_Data16();
+    void PUSH_CS();
+
 
     void mov_AL_ib();
     void mov_rmw_sr();
@@ -37,10 +51,15 @@ private:
 
 /* Arithmetics methods */
 private:
-    uint8_t Add8(uint8_t leftOpernad, uint8_t righrOperand);
+    uint8_t Add8(uint8_t leftOperand, uint8_t rightOperand);
+    uint16_t Add16(uint16_t leftOperand, uint16_t rightOperand);
+    uint8_t  Bitwise8(uint8_t leftOperand, uint8_t rightOperand);
+    uint16_t Bitwise16(uint16_t leftOperand, uint16_t rightOperand);
+    uint8_t AddWc8(uint8_t leftOperand, uint8_t rightOperand);
+    uint16_t AddWc16(uint16_t leftOperand, uint16_t rightOperand);
 
 private:
-    void decode_ModRM();
+    void FetchAndDecode_ModRMByte();
 
     // R/W directly to the selected register //
     inline uint8_t ReadByte_Register();
@@ -52,6 +71,7 @@ private:
     inline uint8_t ReadByte_EffectiveAddress();
     inline uint16_t ReadWord_EffectiveAddress();
     inline void WriteByte_EffectiveAddress(uint8_t data);
+    inline void WriteWord_EffectiveAddress(uint16_t data);
 
     // R/W to memory using Physical Address //
     uint8_t ReadByte_Memory(uint32_t physicalAddress);
@@ -73,6 +93,7 @@ public:
 
     void cpuReset();
     void exec86(int requestedCycles);
+    void DebugToScreen();
 };
 
 #endif //X86___IAPX86_H

@@ -56,16 +56,16 @@ bool signFlag;
 bool trapFlag;
 bool zeroFlag;
 
-#define C_FLAG 0x001
-#define P_FLAG 0x004
-#define A_FLAG 0x010
-#define Z_FLAG 0x040
-#define N_FLAG 0x080
-#define I_FLAG 0x200
-#define D_FLAG 0x400
-#define V_FLAG 0x800
-uint16_t flags;
-
-
+#define CF << 0
+#define PF << 2
+#define AF << 4
+#define ZF << 6
+#define SF << 7
+#define TF << 8
+#define IF << 9
+#define DF << 10
+#define OF << 11
+#define None << 15
+bool iapx86_Flags[16];
 
 #endif //X86___INTEL_H

@@ -19,8 +19,11 @@ uint8_t mem[0xFFFFF];
 
 uint8_t bLeftOperand;
 uint8_t bRightOperand;
+uint8_t bResult;
+
 uint16_t wLeftOperand;
 uint16_t wRightOperand;
+uint16_t  wResult;
 
 uint16_t wOffset;
 uint16_t wSegbase;
@@ -30,6 +33,8 @@ uint16_t disp16;
 uint8_t paritytable_8bits[256];
 uint16_t znptable16[65536];
 
+uint16_t iCS; //Current instruction Code Stack;
+uint16_t iIP; //current instruction Instruction Pointer;
 
 
 void generate_parity_table()
@@ -58,11 +63,25 @@ iapx86::iapx86()
 {
     generate_parity_table();
 
+    // Populate instDecoder table :
+    /* 0x00 - 0x0F ==================================*/
     instDecoder[0x00] = &iapx86::ADD_EAb_REGb;
     instDecoder[0x01] = &iapx86::ADD_EAw_REGw;
+    instDecoder[0x02] = &iapx86::ADD_REGb_EAb;
+    instDecoder[0x03] = &iapx86::ADD_REGw_EAw;
+    instDecoder[0x04] = &iapx86::ADD_AL_Data8;
+    instDecoder[0x05] = &iapx86::ADD_AX_Data16;
+    instDecoder[0x06] = &iapx86::PUSH_ES;
+    instDecoder[0x07] = &iapx86::POP_ES;
+
+    /* 0xB0 - 0xBF ==================================*/
     instDecoder[0xB0] = &iapx86::mov_AL_ib;
+
+    /* 0x80 - 0x8F ==================================*/
     instDecoder[0x8C] = &iapx86::mov_rmw_sr;
     instDecoder[0x8E] = &iapx86::mov_sr_rmw;
+
+    /* 0xE0 - 0xEF ==================================*/
     instDecoder[0xEA] = &iapx86::JMP_FAR_DIRECT;
 }
 
@@ -71,8 +90,10 @@ iapx86::~iapx86()
 
 }
 
-void iapx86::decode_ModRM()
+void iapx86::FetchAndDecode_ModRMByte()
     {
+        ModRM=getImmediateByte();
+
         reg=(ModRM>>3)&7;
         mod=ModRM>>6;
         rm=ModRM&7;
@@ -147,6 +168,12 @@ void iapx86::WriteByte_Register(uint8_t data)
     if (reg&4) iapx86_Registers[reg&3].b.h=data;
     else iapx86_Registers[reg&3].b.l=data;
 }
+
+void iapx86::WriteWord_Register(uint16_t data)
+{
+    iapx86_Registers[rm].w = data;
+}
+
 //====================================================================================================================//
 
 //= R/W Effective address ============================================================================================//
@@ -181,6 +208,19 @@ inline void iapx86::WriteByte_EffectiveAddress(uint8_t data)
         WriteByte_Memory((easeg << 4 | eaaddr),data);
     }
 }
+
+inline void iapx86::WriteWord_EffectiveAddress(uint16_t data)
+{
+    if (mod==3)
+    {
+        iapx86_Registers[rm&3].w=data;
+    }
+    else
+    {
+        WriteWord_Memory(easeg << 4 | eaaddr, data);
+    }
+}
+
 //====================================================================================================================//
 
 //= Memory ===========================================================================================================//
@@ -198,7 +238,6 @@ inline uint16_t iapx86::ReadWord_Memory(uint32_t addr)
     uint8_t  high = mem[addr++];
     cycles--;
 
-    printf(" %02X %02X", low, high);
     return (high << 8 | low);
 }
 
@@ -214,11 +253,10 @@ void iapx86::WriteWord_Memory(uint32_t physicalAddress, uint16_t data)
 }
 //====================================================================================================================//
 
-uint8_t  iapx86::getImmediateByte()
+uint8_t iapx86::getImmediateByte()
 {
     uint8_t byte = mem[CS <<4 | IP];
     IP++; cycles--;
-    printf(" %02X", byte);
     return byte;
 }
 
@@ -230,11 +268,10 @@ uint16_t iapx86::getImmediateWord()
     uint8_t  high = mem[CS << 4 | IP];
     IP++; cycles--;
 
-    printf(" %02X %02X", low, high);
     return (high << 8 | low);
 }
 
-void ComputeAdd8_Flags(uint8_t leftOperand, uint8_t rightOperand)
+uint8_t iapx86::Add8(uint8_t leftOperand, uint8_t rightOperand)
 {
     uint16_t result = leftOperand + rightOperand;
     uint8_t byteResult = (uint8_t)result;
@@ -254,19 +291,118 @@ void ComputeAdd8_Flags(uint8_t leftOperand, uint8_t rightOperand)
         auxiliaryCarryFlag = false;
 
     parityFlag = paritytable_8bits[(uint8_t)result & 0xFF];
+    return byteResult;
+}
+
+uint16_t iapx86::Add16(uint16_t leftOperand, uint16_t rightOperand)
+{
+    uint32_t u32Result = leftOperand + rightOperand;
+    uint16_t u16Result = (uint16_t)u32Result;
+
+    signFlag = 1 == ((u16Result >> 15) & 1);
+    zeroFlag = 0 == u16Result;
+
+    if (!((leftOperand^rightOperand)&0x8000)&&((leftOperand^u32Result)&0x8000))
+        overflowFlag = true;
+    else
+        overflowFlag = false;
+
+    if (((leftOperand&0xF)+(rightOperand&0xF))&0x10)
+        auxiliaryCarryFlag = true;
+    else
+        auxiliaryCarryFlag = false;
+
+    carryFlag = u32Result > 0xFFFF;
+
+
+    return u16Result;
+}
+
+uint8_t iapx86::Bitwise8(uint8_t leftOperand, uint8_t rightOperand)
+{
+    uint16_t wResult = leftOperand | rightOperand;
+    uint8_t  bResult = (uint8_t)wResult;
+    parityFlag = paritytable_8bits[(uint8_t)wResult & 0xFF];
+    signFlag = 1 == ((bResult >> 7) & 1);
+    zeroFlag = 0 == bResult;
+
+    carryFlag = false;
+    overflowFlag = false;
+
+    return bResult;
+}
+
+uint16_t iapx86::Bitwise16(uint16_t leftOperand, uint16_t rightOperand)
+{
+    uint16_t wResult = leftOperand | rightOperand;
+    uint8_t  bResult = (uint8_t)wResult;
+    parityFlag = paritytable_8bits[(uint8_t)wResult & 0xFF];
+    signFlag = 1 == ((wResult >> 15) & 1);
+    zeroFlag = 0 == bResult;
+
+    carryFlag = false;
+    overflowFlag = false;
+
+    return wResult;
+}
+
+uint8_t iapx86::AddWc8(uint8_t leftOperand, uint8_t rightOperand)
+{
+    uint16_t result = leftOperand + rightOperand + carryFlag;
+    uint8_t byteResult = (uint8_t)result;
+
+    signFlag = 1 == ((byteResult >> 7) & 1);
+    carryFlag = result > 0xFF;
+    zeroFlag = 0 == byteResult;
+
+    if (!((leftOperand^rightOperand)&0x80)&&((leftOperand^result)&0x80))
+        overflowFlag = true;
+    else
+        overflowFlag = false;
+
+    if (((leftOperand&0xF)+(rightOperand&0xF))&0x10)
+        auxiliaryCarryFlag = true;
+    else
+        auxiliaryCarryFlag = false;
+
+    parityFlag = paritytable_8bits[(uint8_t)result & 0xFF];
+    return byteResult;
+}
+
+uint16_t iapx86::AddWc16(uint16_t leftOperand, uint16_t rightOperand)
+{
+    uint32_t u32Result = leftOperand + rightOperand + carryFlag;
+    uint16_t u16Result = (uint16_t)u32Result;
+
+    signFlag = 1 == ((u16Result >> 15) & 1);
+    zeroFlag = 0 == u16Result;
+
+    if (!((leftOperand^rightOperand)&0x8000)&&((leftOperand^u32Result)&0x8000))
+        overflowFlag = true;
+    else
+        overflowFlag = false;
+
+    if (((leftOperand&0xF)+(rightOperand&0xF))&0x10)
+        auxiliaryCarryFlag = true;
+    else
+        auxiliaryCarryFlag = false;
+
+    carryFlag = u32Result > 0xFFFF;
+
+
+    return u16Result;
 }
 
 int iapx86::loadbios()
     {
         FILE *f=NULL;
-        f=fopen("../rom/OHPC02.ROM","rb");
+        f=fopen("../rom/OHPC_00.ROM","rb");
         if (!f) return 0;
         fread(mem+0xFE000,8192,1,f);
         fclose(f);
 
         uint32_t adress = CS<<4 | IP;
         printf("Bios loaded.");
-        printf(" (%05X : %02X) \n",adress, mem[adress]);
         return 1;
     }
 
@@ -288,10 +424,11 @@ void iapx86::exec86(int requestedCycles)
     {
         opcode=ReadByte_Memory(CS<<4 | IP);
         //printf("\nES %04x - CS %04X - SS %04X - DS %04X -- IP %04X -- Flags %04X", ES, CS, SS, DS, IP,flags);
-        printf("\n%04X:%04X ", CS, IP);
+        iCS = CS; //Saved for debug to screen method.
+        iIP = IP; //Saved for debug to screen method.
         IP++;
-        printf("%02X", opcode);
         (this->*instDecoder[opcode])();
+        DebugToScreen();
     }
 }
 
@@ -305,39 +442,157 @@ void printFlags()
     printf(" - Overflow flag : %01X\n", overflowFlag);
 }
 
-/* Arithmetics methods - Compute flags */
-
-
 /*-- 0x00 --*/
 void iapx86::ADD_EAb_REGb()
 {
-    ModRM=getImmediateByte();
-    decode_ModRM();
+    FetchAndDecode_ModRMByte();
     bLeftOperand = ReadByte_EffectiveAddress();
     bRightOperand = ReadByte_Register();
-    WriteByte_EffectiveAddress(bLeftOperand + bRightOperand);
-    ComputeAdd8_Flags(bLeftOperand,bRightOperand);
+    bResult = Add8(bLeftOperand, bRightOperand);
+    WriteByte_EffectiveAddress(bResult);
     cycles-=((mod==3)?3:24);
-
-    printf(" - Left operand at adress %05X : %02X", easeg<<4 | eaaddr, bLeftOperand);
-    printf(" - Right operand : %02X", bRightOperand);
-    uint8_t result8 = bRightOperand + bLeftOperand;
-    printf(" - Result : %02X", result8);
-    uint16_t resul16 = bLeftOperand+bRightOperand;
-    printf(" - Resilt 16 : %04X\n", resul16);
-    printFlags();
-
 }
 
+/*-- 0x01 --*/
 void iapx86::ADD_EAw_REGw()
 {
-    ModRM=getImmediateByte();
-    decode_ModRM();
+    FetchAndDecode_ModRMByte();
     wLeftOperand=ReadWord_EffectiveAddress();
     wRightOperand=ReadWord_Register();
-    
+    uint16_t u16Result = Add16(wLeftOperand, wRightOperand);
+    WriteWord_EffectiveAddress(u16Result);
+    cycles-=((mod==3)?3:24);
 }
 
+/*-- 0x02 --*/
+void iapx86::ADD_REGb_EAb()
+{
+    FetchAndDecode_ModRMByte();
+    bLeftOperand=ReadByte_Register();
+    bRightOperand=ReadByte_EffectiveAddress();
+    bResult = Add8(bLeftOperand, bRightOperand);
+    WriteByte_Register(bResult);
+
+}
+
+/*-- 0x03 --*/
+void iapx86::ADD_REGw_EAw()
+{
+    FetchAndDecode_ModRMByte();
+    wLeftOperand = ReadWord_Register();
+    wRightOperand = ReadWord_EffectiveAddress();
+    uint16_t u16Result = Add16(wLeftOperand, wRightOperand);
+    WriteWord_Register(u16Result);
+
+}
+
+/*-- 0x04 --*/
+void iapx86::ADD_AL_Data8()
+{
+    bLeftOperand = AL;
+    bRightOperand = getImmediateByte();
+    bResult = Add8(bLeftOperand, bRightOperand);
+    AL = bResult;
+
+}
+
+/*-- 0x05 --*/
+void iapx86::ADD_AX_Data16()
+{
+    wLeftOperand = AX;
+    wRightOperand = getImmediateWord();
+    wResult = Add16(wLeftOperand, wRightOperand);
+    AX = wResult;
+
+}
+
+/*-- 0x06 --*/
+void iapx86::PUSH_ES()
+{
+    SP -= 2;
+    WriteWord_Memory(SS << 4 | SP, ES);
+    cycles-=14;
+}
+
+/*-- 0x07 --*/
+void iapx86::POP_ES()
+{
+    ES = ReadWord_Memory(SS << 4 | SP);
+    SP += 2;
+    cycles-=12;
+}
+
+/*-- 0x08 --*/
+void iapx86::OR_EAb_REGb()
+{
+    FetchAndDecode_ModRMByte();
+    bLeftOperand = ReadByte_EffectiveAddress();
+    bRightOperand = ReadByte_Register();
+    bResult = Bitwise8(bLeftOperand, bRightOperand);
+    WriteByte_EffectiveAddress(bResult);
+
+}
+
+/*-- 0x09 --*/
+void iapx86::OR_EAw_REGw()
+{
+    FetchAndDecode_ModRMByte();
+    wLeftOperand = ReadWord_EffectiveAddress();
+    wRightOperand = ReadWord_Register();
+    wResult = Bitwise16(wLeftOperand, wRightOperand);
+    WriteWord_EffectiveAddress(wResult);
+
+}
+
+/*-- 0x0A --*/
+void iapx86::OR_REGb_EAb()
+{
+    FetchAndDecode_ModRMByte();
+    bLeftOperand = ReadByte_Register();
+    bRightOperand = ReadByte_EffectiveAddress();
+    bResult = Bitwise8(bLeftOperand, bRightOperand);
+    WriteByte_Register(bResult);
+
+}
+
+/*-- 0x0B --*/
+void iapx86::OR_REGw_EAw()
+{
+    FetchAndDecode_ModRMByte();
+    wLeftOperand = ReadWord_Register();
+    wRightOperand = ReadWord_EffectiveAddress();
+    wResult = Bitwise16(wLeftOperand, wRightOperand);
+    WriteWord_Register(wResult);
+
+}
+
+/*-- 0x0C --*/
+void iapx86::OR_AL_Data8()
+{
+    bLeftOperand = AL;
+    bRightOperand = getImmediateByte();
+    bResult= Bitwise8(bLeftOperand,bRightOperand);
+    AL = bResult;
+
+}
+
+/*-- 0x0D --*/
+void iapx86::OR_AX_Data16()
+{
+    wLeftOperand = AX;
+    wRightOperand = getImmediateWord();
+    wResult = Bitwise16(wLeftOperand, wRightOperand);
+    AX = wResult;
+
+}
+
+/*-- 0x0E --*/
+void iapx86::PUSH_CS()
+{
+    SP -= 2;
+    WriteWord_Memory(SS << 4 | SP, CS);
+    cycles-=14;
+}
 
 void  iapx86::mov_AL_ib()
 {
@@ -346,15 +601,13 @@ void  iapx86::mov_AL_ib()
 
 void iapx86::mov_rmw_sr()
 {
-    ModRM=getImmediateByte();
-    decode_ModRM();
+    FetchAndDecode_ModRMByte();
     iapx86_Registers[rm].w = iapx86_Segments[reg];
 }
 
 void iapx86::mov_sr_rmw()
 {
-    ModRM=getImmediateByte();
-    decode_ModRM();
+    FetchAndDecode_ModRMByte();
     iapx86_Segments[reg]=iapx86_Registers[rm].w;
 }
 
@@ -380,7 +633,32 @@ void iapx86::JMP_FAR_DIRECT()
 
     CS = wSegbase;
     IP = wOffset;
+}
 
+void iapx86::DebugToScreen()
+{
+    printf("\n%04X:%04X ", CS, IP);
+    printf("%02X", opcode);
+
+    switch (opcode)
+    {
+     case 0x00:
+         //printf(" - Left operand at adress %05X : %02X", easeg << 4 | eaaddr, bLeftOperand);
+         //printf(" - Right operand : %02X", bRightOperand);
+         //printf(" - Result : %02X", bResult);
+         printf(" - (%02X + %02X) = %02X",bLeftOperand, bRightOperand, bResult);
+         //printFlags();
+        break;
+
+    case 0x02:
+        printf(" - (%02X + %02X) = %02X",bLeftOperand, bRightOperand, bResult);
+        break;
+
+    case 0x04:
+        printf(" - (%02X + %02X) = %02X",bLeftOperand, bRightOperand, bResult);
+        break;
+
+    }
 }
 
 
