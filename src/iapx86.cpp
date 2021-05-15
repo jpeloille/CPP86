@@ -31,7 +31,6 @@ uint8_t  disp8;
 uint16_t disp16;
 
 uint8_t paritytable_8bits[256];
-uint16_t znptable16[65536];
 
 uint16_t iCS; //Current instruction Code Stack;
 uint16_t iIP; //current instruction Instruction Pointer;
@@ -40,7 +39,7 @@ uint16_t iIP; //current instruction Instruction Pointer;
 void generate_parity_table()
 {
     int c,d;
-    for (c=0;c<256;c++)
+    7or (c=0;c<256;c++)
     {
         d=0;
         if (c&1) d++;
@@ -73,6 +72,32 @@ iapx86::iapx86()
     instDecoder[0x05] = &iapx86::ADD_AX_Data16;
     instDecoder[0x06] = &iapx86::PUSH_ES;
     instDecoder[0x07] = &iapx86::POP_ES;
+    instDecoder[0x08] = &iapx86::OR_EAb_REGb;
+    instDecoder[0x09] = &iapx86::OR_EAw_REGw;
+    instDecoder[0x0A] = &iapx86::OR_REGb_EAb;
+    instDecoder[0x0B] = &iapx86::OR_REGw_EAw;
+    instDecoder[0x0C] = &iapx86::OR_AL_Data8;
+    instDecoder[0x0D] = &iapx86::OR_AX_Data16;
+    instDecoder[0x0E] = &iapx86::PUSH_CS;
+
+    /* 0x10 - 0x1F ==================================*/
+    instDecoder[0x10] = &iapx86::ADC_EAb_REGb;
+    instDecoder[0x11] = &iapx86::ADC_EAw_REGw;
+    instDecoder[0x12] = &iapx86::ADC_REGb_EAb;
+    instDecoder[0x13] = &iapx86::ADC_REGw_EAw;
+    instDecoder[0x14] = &iapx86::ADC_AL_Data8;
+    instDecoder[0x15] = &iapx86::ADC_AX_Data16;
+    instDecoder[0x16] = &iapx86::PUSH_SS;
+    instDecoder[0x17] = &iapx86::POP_SS;
+    instDecoder[0x18] = &iapx86::SBB_EAb_REGb;
+    instDecoder[0x19] = &iapx86::SBB_EAw_REGw;
+    instDecoder[0x1A] = &iapx86::SBB_REGb_EAb;
+    instDecoder[0x1B] = &iapx86::SBB_REGw_EAw;
+    instDecoder[0x1C] = &iapx86::SBB_AL_Data8;
+    instDecoder[0x1D] = &iapx86::SBB_AX_Data16;
+    instDecoder[0x1E] = &iapx86::PUSH_DS;
+    instDecoder[0x1f] = &iapx86::PUSH_DS;
+
 
     /* 0xB0 - 0xBF ==================================*/
     instDecoder[0xB0] = &iapx86::mov_AL_ib;
@@ -90,6 +115,31 @@ iapx86::~iapx86()
 
 }
 
+int iapx86::loadbios()
+{
+    FILE *f=NULL;
+    f=fopen("../rom/OHPC_00.ROM","rb");
+    if (!f) return 0;
+    fread(mem+0xFE000,8192,1,f);
+    fclose(f);
+
+    uint32_t adress = CS<<4 | IP;
+    printf("Bios loaded.");
+    return 1;
+}
+
+void iapx86::cpuReset()
+{
+    ES = 0x0000;
+    CS = 0xFFFF;
+    SS = 0x0000;
+    DS = 0x0000;
+    IP = 0x0000;
+
+    loadbios();
+}
+
+//= Fetch & decode ModRM byte ========================================================================================//
 void iapx86::FetchAndDecode_ModRMByte()
     {
         ModRM=getImmediateByte();
@@ -174,8 +224,6 @@ void iapx86::WriteWord_Register(uint16_t data)
     iapx86_Registers[rm].w = data;
 }
 
-//====================================================================================================================//
-
 //= R/W Effective address ============================================================================================//
 inline uint8_t iapx86::ReadByte_EffectiveAddress()
 {
@@ -221,8 +269,6 @@ inline void iapx86::WriteWord_EffectiveAddress(uint16_t data)
     }
 }
 
-//====================================================================================================================//
-
 //= Memory ===========================================================================================================//
 uint8_t iapx86::ReadByte_Memory(uint32_t addr)
 {
@@ -251,6 +297,7 @@ void iapx86::WriteWord_Memory(uint32_t physicalAddress, uint16_t data)
     mem[physicalAddress]=data;
     mem[physicalAddress++]=(data>>8);
 }
+
 //====================================================================================================================//
 
 uint8_t iapx86::getImmediateByte()
@@ -348,7 +395,9 @@ uint16_t iapx86::Bitwise16(uint16_t leftOperand, uint16_t rightOperand)
 
 uint8_t iapx86::AddWc8(uint8_t leftOperand, uint8_t rightOperand)
 {
-    uint16_t result = leftOperand + rightOperand + carryFlag;
+    uint16_t result = leftOperand + rightOperand;
+    if (carryFlag) result += 1;
+
     uint8_t byteResult = (uint8_t)result;
 
     signFlag = 1 == ((byteResult >> 7) & 1);
@@ -371,7 +420,9 @@ uint8_t iapx86::AddWc8(uint8_t leftOperand, uint8_t rightOperand)
 
 uint16_t iapx86::AddWc16(uint16_t leftOperand, uint16_t rightOperand)
 {
-    uint32_t u32Result = leftOperand + rightOperand + carryFlag;
+    uint32_t u32Result = leftOperand + rightOperand;
+    if (carryFlag) u32Result += 1;
+
     uint16_t u16Result = (uint16_t)u32Result;
 
     signFlag = 1 == ((u16Result >> 15) & 1);
@@ -393,29 +444,6 @@ uint16_t iapx86::AddWc16(uint16_t leftOperand, uint16_t rightOperand)
     return u16Result;
 }
 
-int iapx86::loadbios()
-    {
-        FILE *f=NULL;
-        f=fopen("../rom/OHPC_00.ROM","rb");
-        if (!f) return 0;
-        fread(mem+0xFE000,8192,1,f);
-        fclose(f);
-
-        uint32_t adress = CS<<4 | IP;
-        printf("Bios loaded.");
-        return 1;
-    }
-
-void iapx86::cpuReset()
-    {
-        ES = 0x0000;
-        CS = 0xFFFF;
-        SS = 0x0000;
-        DS = 0x0000;
-        IP = 0x0000;
-
-        loadbios();
-    }
 
 void iapx86::exec86(int requestedCycles)
 {
@@ -432,15 +460,6 @@ void iapx86::exec86(int requestedCycles)
     }
 }
 
-void printFlags()
-{
-    printf("Zero flag : %01X", zeroFlag);
-    printf( " - Carry flag : %01X", carryFlag);
-    printf(" - Sign flag : %01X", signFlag);
-    printf(" - Parity flag : %01X", parityFlag);
-    printf(" - Auxiliary carry flag: %01X", auxiliaryCarryFlag);
-    printf(" - Overflow flag : %01X\n", overflowFlag);
-}
 
 /*-- 0x00 --*/
 void iapx86::ADD_EAb_REGb()
@@ -594,6 +613,88 @@ void iapx86::PUSH_CS()
     cycles-=14;
 }
 
+/*-- 0X10 --*/
+void iapx86::ADC_EAb_REGb()
+{
+    FetchAndDecode_ModRMByte();
+    bLeftOperand = ReadByte_EffectiveAddress();
+    bRightOperand = ReadByte_Register();
+    bResult = AddWc8(bLeftOperand, bRightOperand);
+    WriteByte_EffectiveAddress(bResult);
+    cycles-=((mod==3)?3:24);
+}
+
+/*-- 0x11 --*/
+void iapx86::ADC_EAw_REGw()
+{
+    FetchAndDecode_ModRMByte();
+    wLeftOperand = ReadWord_EffectiveAddress();
+    wRightOperand = ReadWord_Register();
+    wResult = AddWc16(wLeftOperand, wRightOperand);
+    WriteWord_EffectiveAddress(wResult);
+    cycles-=((mod==3)?3:24);
+}
+
+/*-- 0x12 --*/
+void iapx86::ADC_REGb_EAb()
+{
+    FetchAndDecode_ModRMByte();
+    bLeftOperand = ReadByte_Register();
+    bRightOperand = ReadByte_EffectiveAddress();
+    bResult = AddWc8(bLeftOperand, bRightOperand);
+    WriteByte_EffectiveAddress(bResult);
+    cycles-=((mod==3)?3:24);
+}
+
+/*-- 0x13 --*/
+void  iapx86::ADC_REGw_EAw()
+{
+    FetchAndDecode_ModRMByte();
+    wLeftOperand = ReadWord_Register();
+    wRightOperand = ReadWord_EffectiveAddress();
+    wResult = AddWc16(wLeftOperand, wRightOperand);
+    WriteWord_EffectiveAddress(wResult);
+    cycles-=((mod==3)?3:24);
+}
+
+/*-- 0x14 --*/
+void iapx86::ADC_AL_Data8()
+{
+    bLeftOperand = AL;
+    bRightOperand = getImmediateByte();
+    bResult = AddWc8(bLeftOperand, bRightOperand);
+    AL = bResult;
+    cycles-=4;
+}
+
+/*-- 0x15 --*/
+void iapx86::ADC_AX_Data16()
+{
+    wLeftOperand = AX;
+    wRightOperand = getImmediateWord();
+    wResult = AddWc16(wLeftOperand, wRightOperand);
+    AX = wResult;
+    cycles-=4;
+}
+
+/*-- 0x16 --*/
+void iapx86::PUSH_SS()
+{
+    SP -= 2;
+    WriteWord_Memory(SS << 4 | SP, SS);
+    cycles-=14;
+}
+
+/*-- 0x17 --*/
+void iapx86::POP_SS()
+{
+    SS = ReadWord_Memory(SS << 4 | SP);
+    SP += 2;
+    cycles-=12;
+}
+
+
+
 void  iapx86::mov_AL_ib()
 {
     AL = getImmediateByte();
@@ -635,6 +736,16 @@ void iapx86::JMP_FAR_DIRECT()
     IP = wOffset;
 }
 
+void printFlags()
+{
+    printf("Zero flag : %01X", zeroFlag);
+    printf( " - Carry flag : %01X", carryFlag);
+    printf(" - Sign flag : %01X", signFlag);
+    printf(" - Parity flag : %01X", parityFlag);
+    printf(" - Auxiliary carry flag: %01X", auxiliaryCarryFlag);
+    printf(" - Overflow flag : %01X\n", overflowFlag);
+}
+
 void iapx86::DebugToScreen()
 {
     printf("\n%04X:%04X ", CS, IP);
@@ -658,6 +769,9 @@ void iapx86::DebugToScreen()
         printf(" - (%02X + %02X) = %02X",bLeftOperand, bRightOperand, bResult);
         break;
 
+    case 0xEA:
+        printf(" - SEGMENT : %04X - OFFSET : %04X",wSegbase, wOffset);
+        break;
     }
 }
 

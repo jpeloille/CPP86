@@ -39,6 +39,22 @@ private:
     void OR_AX_Data16();
     void PUSH_CS();
 
+    void ADC_EAb_REGb();
+    void ADC_EAw_REGw();
+    void ADC_REGb_EAb();
+    void ADC_REGw_EAw();
+    void ADC_AL_Data8();
+    void ADC_AX_Data16();
+    void PUSH_SS();
+    void POP_SS();
+    void SBB_EAb_REGb();
+    void SBB_EAw_REGw();
+    void SBB_REGb_EAb();
+    void SBB_REGw_EAw();
+    void SBB_AL_Data8();
+    void SBB_AX_Data16();
+    void PUSH_DS();
+    void POP_DS();
 
     void mov_AL_ib();
     void mov_rmw_sr();

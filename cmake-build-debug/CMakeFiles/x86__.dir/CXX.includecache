@@ -6,17 +6,17 @@
 
 #IncludeRegexTransform: 
 
-/home/oem/CLionProjects/x86__/src/iapx86.cpp
+/home/julien/Repositories/src/iapx86.cpp
 cstdio
 -
 intel.h
-/home/oem/CLionProjects/x86__/src/intel.h
+/home/julien/Repositories/src/intel.h
 iapx86.h
-/home/oem/CLionProjects/x86__/src/iapx86.h
+/home/julien/Repositories/src/iapx86.h
 
-/home/oem/CLionProjects/x86__/src/iapx86.h
+/home/julien/Repositories/src/iapx86.h
 
-/home/oem/CLionProjects/x86__/src/intel.h
+/home/julien/Repositories/src/intel.h
 stdint.h
 -
 
