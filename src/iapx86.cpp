@@ -89,14 +89,14 @@ iapx86::iapx86()
     instDecoder[0x15] = &iapx86::ADC_AX_Data16;
     instDecoder[0x16] = &iapx86::PUSH_SS;
     instDecoder[0x17] = &iapx86::POP_SS;
-    instDecoder[0x18] = &iapx86::SBB_EAb_REGb;
+    /*instDecoder[0x18] = &iapx86::SBB_EAb_REGb;
     instDecoder[0x19] = &iapx86::SBB_EAw_REGw;
     instDecoder[0x1A] = &iapx86::SBB_REGb_EAb;
     instDecoder[0x1B] = &iapx86::SBB_REGw_EAw;
     instDecoder[0x1C] = &iapx86::SBB_AL_Data8;
     instDecoder[0x1D] = &iapx86::SBB_AX_Data16;
     instDecoder[0x1E] = &iapx86::PUSH_DS;
-    instDecoder[0x1f] = &iapx86::PUSH_DS;
+    instDecoder[0x1f] = &iapx86::PUSH_DS;*/
 
 
     /* 0xB0 - 0xBF ==================================*/
