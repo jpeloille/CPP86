@@ -47,8 +47,7 @@ private:
     void ADC_AX_Data16();
     void PUSH_SS();
     void POP_SS();
-/*
- *  void SBB_EAb_REGb();
+    void SBB_EAb_REGb();
     void SBB_EAw_REGw();
     void SBB_REGb_EAb();
     void SBB_REGw_EAw();
@@ -56,7 +55,7 @@ private:
     void SBB_AX_Data16();
     void PUSH_DS();
     void POP_DS();
-*/
+
     void mov_AL_ib();
     void mov_rmw_sr();
     void mov_sr_rmw();
