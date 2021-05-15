@@ -1,4 +1,0 @@
-/home/julien/Repositories/UnoApp/UnoApp/UnoApp.Skia.Tizen/obj/Debug/tizen50/UnoApp.Skia.Tizen.csprojAssemblyReference.cache
-/home/julien/Repositories/UnoApp/UnoApp/UnoApp.Skia.Tizen/obj/Debug/tizen50/UnoApp.Skia.Tizen.AssemblyInfoInputs.cache
-/home/julien/Repositories/UnoApp/UnoApp/UnoApp.Skia.Tizen/obj/Debug/tizen50/UnoApp.Skia.Tizen.AssemblyInfo.cs
-/home/julien/Repositories/UnoApp/UnoApp/UnoApp.Skia.Tizen/obj/Debug/tizen50/UnoApp.Skia.Tizen.csproj.CoreCompileInputs.cache

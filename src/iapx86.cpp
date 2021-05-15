@@ -39,7 +39,7 @@ uint16_t iIP; //current instruction Instruction Pointer;
 void generate_parity_table()
 {
     int c,d;
-    7or (c=0;c<256;c++)
+    for (c=0;c<256;c++)
     {
         d=0;
         if (c&1) d++;

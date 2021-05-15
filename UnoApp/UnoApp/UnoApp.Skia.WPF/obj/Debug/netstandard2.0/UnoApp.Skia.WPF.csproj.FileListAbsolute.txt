@@ -1,4 +1,0 @@
-/home/julien/Repositories/UnoApp/UnoApp/UnoApp.Skia.WPF/obj/Debug/netstandard2.0/UnoApp.Skia.WPF.csprojAssemblyReference.cache
-/home/julien/Repositories/UnoApp/UnoApp/UnoApp.Skia.WPF/obj/Debug/netstandard2.0/UnoApp.Skia.WPF.AssemblyInfoInputs.cache
-/home/julien/Repositories/UnoApp/UnoApp/UnoApp.Skia.WPF/obj/Debug/netstandard2.0/UnoApp.Skia.WPF.AssemblyInfo.cs
-/home/julien/Repositories/UnoApp/UnoApp/UnoApp.Skia.WPF/obj/Debug/netstandard2.0/UnoApp.Skia.WPF.csproj.CoreCompileInputs.cache

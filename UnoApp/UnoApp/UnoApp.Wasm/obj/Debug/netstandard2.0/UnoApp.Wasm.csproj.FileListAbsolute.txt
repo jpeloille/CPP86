@@ -1,4 +1,0 @@
-/home/julien/Repositories/UnoApp/UnoApp/UnoApp.Wasm/obj/Debug/netstandard2.0/UnoApp.Wasm.csprojAssemblyReference.cache
-/home/julien/Repositories/UnoApp/UnoApp/UnoApp.Wasm/obj/Debug/netstandard2.0/UnoApp.Wasm.AssemblyInfoInputs.cache
-/home/julien/Repositories/UnoApp/UnoApp/UnoApp.Wasm/obj/Debug/netstandard2.0/UnoApp.Wasm.AssemblyInfo.cs
-/home/julien/Repositories/UnoApp/UnoApp/UnoApp.Wasm/obj/Debug/netstandard2.0/UnoApp.Wasm.csproj.CoreCompileInputs.cache
