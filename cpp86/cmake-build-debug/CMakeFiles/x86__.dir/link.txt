@@ -1,1 +1,0 @@
-/usr/bin/c++ -g CMakeFiles/x86__.dir/main.cpp.o CMakeFiles/x86__.dir/src/iapx86.cpp.o -o x86__ 
