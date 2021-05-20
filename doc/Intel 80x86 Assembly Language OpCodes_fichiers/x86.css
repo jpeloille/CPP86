@@ -1,0 +1,82 @@
+A:link
+{
+  Color: #0000E0;
+  Font-Weight: bold;
+  Text-Decoration: none;
+}
+
+A:visited
+{
+  Color: #000080;
+  Font-Weight: bold;
+  Text-Decoration: none;
+}
+
+A:hover
+{
+  Color: #E00000;
+  Font-Weight: bold;
+  Text-Decoration: none;
+}
+
+A:active
+{
+  Color: #E00000;
+  Font-Weight: bold;
+  Text-Decoration: underline;
+}
+
+A:focus
+{
+  Color: #00E000;
+  Font-Weight: bold;
+  Text-Decoration: underline;
+}
+
+BODY
+{
+  Background: white;
+  Color: black;
+  Font-Family: helvetica, sans-serif;
+}
+
+H2
+{
+  Font-Size: 14pt;
+  Font-Variant: small-caps;
+  Font-Weight: bold;
+}
+
+H3
+{
+  Font-Size: 12pt;
+  Font-Variant: small-caps;
+  Font-Weight: bold;
+}
+
+H4
+{
+  Font-Size: 11pt;
+  Font-Weight: bold;
+}
+
+DL, OL, UL, P, TABLE
+{
+  Font-Size: 10pt;
+}
+
+OL
+{
+  List-Style-Type: decimal;
+}
+
+UL
+{
+  List-Style-Type: none;
+}
+
+TABLE
+{
+  Border-Spacing: 0px;
+  Empty-Cells: show;
+}
