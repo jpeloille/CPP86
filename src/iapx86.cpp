@@ -300,7 +300,6 @@ void iapx86::WriteWord_Memory(uint32_t physicalAddress, uint16_t data)
 }
 
 //====================================================================================================================//
-
 uint8_t iapx86::getImmediateByte()
 {
     uint8_t byte = mem[CS <<4 | IP];
@@ -319,6 +318,7 @@ uint16_t iapx86::getImmediateWord()
     return (high << 8 | low);
 }
 
+//= Arithmetics methods ==============================================================================================//
 uint8_t iapx86::Add8(uint8_t leftOperand, uint8_t rightOperand)
 {
     uint16_t result = leftOperand + rightOperand;
@@ -445,7 +445,31 @@ uint16_t iapx86::AddWc16(uint16_t leftOperand, uint16_t rightOperand)
     return u16Result;
 }
 
+uint8_t iapx86::Sbb8(uint8_t leftOperand, uint8_t rightOperand)
+{
+    uint16_t result = leftOperand - rightOperand;
+    uint8_t result8 = (uint8_t) result;
 
+/*
+    uint16_t c = (uint16_t)a - (uint16_t)b;
+    cpu_state.flags &= ~0x8D5;
+    cpu_state.flags |= znptable8[c&0xFF];
+    if (c & 0x100)
+        cpu_state.flags |= C_FLAG;
+    if ((a ^ b) & (a ^ c) & 0x80)
+        cpu_state.flags |= V_FLAG;
+    if (((a & 0xF) - (b & 0xF)) & 0x10)
+        cpu_state.flags |= A_FLAG;
+*/
+
+}
+
+uint16_t iapx86::Sbb16(uint16_t leftOperand, uint16_t rightOperand)
+{
+
+}
+
+//= Main method ======================================================================================================//
 void iapx86::exec86(int requestedCycles)
 {
     cycles += requestedCycles;
@@ -461,7 +485,7 @@ void iapx86::exec86(int requestedCycles)
     }
 }
 
-
+//= Opcodes methods ==================================================================================================//
 /*-- 0x00 --*/
 void iapx86::ADD_EAb_REGb()
 {

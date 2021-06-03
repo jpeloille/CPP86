@@ -5,7 +5,6 @@
 #ifndef X86___IAPX86_H
 #define X86___IAPX86_H
 
-
 class iapx86
 {
 
@@ -74,6 +73,8 @@ private:
     uint16_t Bitwise16(uint16_t leftOperand, uint16_t rightOperand);
     uint8_t AddWc8(uint8_t leftOperand, uint8_t rightOperand);
     uint16_t AddWc16(uint16_t leftOperand, uint16_t rightOperand);
+    uint8_t Sbb8(uint8_t leftOperand, uint8_t rightOperand);
+    uint16_t Sbb16(uint16_t leftOperand, uint16_t rightOperand);
 
 private:
     void FetchAndDecode_ModRMByte();
