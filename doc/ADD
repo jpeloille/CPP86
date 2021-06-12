@@ -1,0 +1,8 @@
+ADD : Addition
+
+Operation: The sum of the two operands is stored into the destination (leftmost)
+operand.
+
+(DEST) <- (LSRC) + (RSRC)
+
+Flags Affected: AF, CF, OF, PF, SF, ZF

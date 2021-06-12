@@ -5,6 +5,37 @@
 #ifndef X86___IAPX86_H
 #define X86___IAPX86_H
 
+#define BYTE_TO_BINARY_PATTERN "%c%c%c%c %c%c%c%c"
+#define BYTE_TO_BINARY(byte)  \
+  (byte & 0x80 ? '1' : '0'), \
+  (byte & 0x40 ? '1' : '0'), \
+  (byte & 0x20 ? '1' : '0'), \
+  (byte & 0x10 ? '1' : '0'), \
+  (byte & 0x08 ? '1' : '0'), \
+  (byte & 0x04 ? '1' : '0'), \
+  (byte & 0x02 ? '1' : '0'), \
+  (byte & 0x01 ? '1' : '0')
+
+#define WORD_TO_BINARY_PATTERN "%c%c%c%c %c%c%c%c - %c%c%c%c %c%c%c%c"
+#define WORD_TO_BINARY(word) \
+  (word & 0x8000 ? '1' : '0'), \
+  (word & 0x4000 ? '1' : '0'), \
+  (word & 0x2000 ? '1' : '0'), \
+  (word & 0x1000 ? '1' : '0'), \
+  (word & 0x0800 ? '1' : '0'), \
+  (word & 0x0400 ? '1' : '0'), \
+  (word & 0x0200 ? '1' : '0'), \
+  (word & 0x0100 ? '1' : '0'), \
+                             \
+  (word & 0x80 ? '1' : '0'), \
+  (word & 0x40 ? '1' : '0'), \
+  (word & 0x20 ? '1' : '0'), \
+  (word & 0x10 ? '1' : '0'), \
+  (word & 0x08 ? '1' : '0'), \
+  (word & 0x04 ? '1' : '0'), \
+  (word & 0x02 ? '1' : '0'), \
+  (word & 0x01 ? '1' : '0')
+
 class iapx86
 {
 
@@ -68,13 +99,23 @@ private:
 /* Arithmetics methods */
 private:
     uint8_t Add8(uint8_t leftOperand, uint8_t rightOperand);
+    uint8_t Adc8(uint8_t leftOperand, uint8_t rightOperand);
     uint16_t Add16(uint16_t leftOperand, uint16_t rightOperand);
+    uint16_t Adc16(uint16_t leftOperand, uint16_t rightOperand);
+    uint8_t Sub8(uint8_t leftOperand, uint8_t rightOperand);
+    uint8_t Sbb8(uint8_t leftOperand, uint8_t rightOperand);
+    uint16_t Sub16(uint16_t leftOperand, uint16_t rightOperand);
+    uint16_t Sbb16(uint16_t leftOperand, uint16_t rightOperand);
+
+    uint8_t Inc8(uint8_t leftOperand, uint8_t rightOperand);
+    uint16_t Inc16(uint16_t leftOperand, uint16_t rightOperand);
+    uint8_t Dec8(uint8_t leftOperand, uint8_t rightOperand);
+    uint16_t Dec16(uint16_t leftOperand, uint16_t rightOperand);
+
     uint8_t  Bitwise8(uint8_t leftOperand, uint8_t rightOperand);
     uint16_t Bitwise16(uint16_t leftOperand, uint16_t rightOperand);
-    uint8_t AddWc8(uint8_t leftOperand, uint8_t rightOperand);
-    uint16_t AddWc16(uint16_t leftOperand, uint16_t rightOperand);
-    uint8_t Sbb8(uint8_t leftOperand, uint8_t rightOperand);
-    uint16_t Sbb16(uint16_t leftOperand, uint16_t rightOperand);
+
+
 
 private:
     void FetchAndDecode_ModRMByte();
@@ -112,6 +153,8 @@ public:
     void cpuReset();
     void exec86(int requestedCycles);
     void DebugToScreen();
+
+    void PrintFlags();
 };
 
 #endif //X86___IAPX86_H

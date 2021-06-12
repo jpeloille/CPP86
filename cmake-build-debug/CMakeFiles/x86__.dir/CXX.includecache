@@ -6,12 +6,6 @@
 
 #IncludeRegexTransform: 
 
-/home/julien/Repositories/main.cpp
-iostream
--
-src/iapx86.h
-/home/julien/Repositories/src/iapx86.h
-
 /home/julien/Repositories/src/iapx86.cpp
 cstdio
 -

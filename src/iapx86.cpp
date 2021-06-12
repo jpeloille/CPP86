@@ -31,17 +31,27 @@ uint16_t wSegbase;
 uint8_t  disp8;
 uint16_t disp16;
 
-uint8_t paritytable_8bits[256];
+uint8_t pzsTable8[256];
+uint8_t pzsTable16[65536];
+
+uint8_t startCycleCarryFlag;
 
 uint16_t iCS; //Current instruction Code Stack;
 uint16_t iIP; //current instruction Instruction Pointer;
 
-
-void generate_parity_table()
+void populatePzsTables()
 {
+    //Pour éviter de consommer du temps on génére dans une table les valeurs
+    //des drapeaux du signe, de la parité et du zéro. Ainsi, lors des opérations
+    //arithmétiques et logiques il y aura un accès direct au sein de ce tableau
+    //avec pout entrée le résultat.
+
     int c,d;
+
     for (c=0;c<256;c++)
     {
+        pzsTable8[c] = 0;
+
         d=0;
         if (c&1) d++;
         if (c&2) d++;
@@ -51,17 +61,49 @@ void generate_parity_table()
         if (c&32) d++;
         if (c&64) d++;
         if (c&128) d++;
-        if (d%2==0)
-            paritytable_8bits[c]=true;
-        else
-            paritytable_8bits[c]=false;
+
+        if (d%2==0) pzsTable8[c]=P_FLAG;
+        else pzsTable8[c]=0;
+
+        if (!c) pzsTable8[c]|=Z_FLAG;
+        if (c&0x80) pzsTable8[c]|=S_FLAG;
     }
-    paritytable_8bits[0]=0;
+
+    for (c=0;c<65536;c++)
+    {
+        d=0;
+
+        if (c&1) d++;
+        if (c&2) d++;
+        if (c&4) d++;
+        if (c&8) d++;
+        if (c&16) d++;
+        if (c&32) d++;
+        if (c&64) d++;
+        if (c&128) d++;
+
+        if (c&256) d++;
+        if (c&512) d++;
+        if (c&1024) d++;
+        if (c&2048) d++;
+        if (c&4096) d++;
+        if (c&8192) d++;
+        if (c&16384) d++;
+        if (c&32768) d++;
+
+        if (d%2==0) pzsTable16[c]=P_FLAG;
+        else pzsTable16[c]=false;
+
+        if (!c) pzsTable16[c]|=Z_FLAG;
+        if (c&0x8000) pzsTable16[c]|=S_FLAG;
+
+    }
+
 }
 
 iapx86::iapx86()
 {
-    generate_parity_table();
+    populatePzsTables();
 
     // Populate instDecoder table :
     /* 0x00 - 0x0F ==================================*/
@@ -321,25 +363,38 @@ uint16_t iapx86::getImmediateWord()
 //= Arithmetics methods ==============================================================================================//
 uint8_t iapx86::Add8(uint8_t leftOperand, uint8_t rightOperand)
 {
-    uint16_t result = leftOperand + rightOperand;
-    uint8_t byteResult = (uint8_t)result;
+    uint16_t result16 = leftOperand + rightOperand;
+    uint8_t result8 = (uint16_t) result16;
 
-    signFlag = 1 == ((byteResult >> 7) & 1);
-    carryFlag = result > 0xFF;
-    zeroFlag = 0 == byteResult;
-
-    if (!((leftOperand^rightOperand)&0x80)&&((leftOperand^result)&0x80))
-        overflowFlag = true;
-    else
-        overflowFlag = false;
-
+    /* Flags Affected: AF, CF, OF, PF, SF, ZF */
+    iapx86_FlagsRegister &= ~0x8D5;
+    iapx86_FlagsRegister |= pzsTable8[result8 & 0xFF];
     if (((leftOperand&0xF)+(rightOperand&0xF))&0x10)
-        auxiliaryCarryFlag = true;
-    else
-        auxiliaryCarryFlag = false;
+        iapx86_FlagsRegister |= A_FLAG;
+    if (result16 & 0x100)
+        iapx86_FlagsRegister |= C_FLAG;
+    if (!((leftOperand^rightOperand)&0x80)&&((leftOperand^result16)&0x80))
+        iapx86_FlagsRegister |= O_FLAG;
 
-    parityFlag = paritytable_8bits[(uint8_t)result & 0xFF];
-    return byteResult;
+    return result8;
+}
+
+uint8_t iapx86::Adc8(uint8_t leftOperand, uint8_t rightOperand)
+{
+    uint16_t result16 = leftOperand + rightOperand + startCycleCarryFlag;
+    uint8_t result8 = (uint16_t) result16;
+
+    /* Flags Affected: AF, CF, OF, PF, SF, ZF */
+    iapx86_FlagsRegister &= ~0x8D5;
+    iapx86_FlagsRegister |= pzsTable8[result8 & 0xFF];
+    if (((leftOperand&0xF)+(rightOperand&0xF))&0x10)
+        iapx86_FlagsRegister |= A_FLAG;
+    if (result16 & 0x100)
+        iapx86_FlagsRegister |= C_FLAG;
+    if (!((leftOperand^rightOperand)&0x80)&&((leftOperand^result16)&0x80))
+        iapx86_FlagsRegister |= O_FLAG;
+
+    return result8;
 }
 
 uint16_t iapx86::Add16(uint16_t leftOperand, uint16_t rightOperand)
@@ -347,44 +402,223 @@ uint16_t iapx86::Add16(uint16_t leftOperand, uint16_t rightOperand)
     uint32_t u32Result = leftOperand + rightOperand;
     uint16_t u16Result = (uint16_t)u32Result;
 
-    signFlag = 1 == ((u16Result >> 15) & 1);
-    zeroFlag = 0 == u16Result;
-
-    if (!((leftOperand^rightOperand)&0x8000)&&((leftOperand^u32Result)&0x8000))
-        overflowFlag = true;
-    else
-        overflowFlag = false;
-
+    /* Flags Affected: AF, CF, OF, PF, SF, ZF */
+    iapx86_FlagsRegister &= ~0x08D5;
+    iapx86_FlagsRegister |= pzsTable16[u16Result&0xFFFF];
     if (((leftOperand&0xF)+(rightOperand&0xF))&0x10)
-        auxiliaryCarryFlag = true;
-    else
-        auxiliaryCarryFlag = false;
-
-    carryFlag = u32Result > 0xFFFF;
-
+        iapx86_FlagsRegister |= A_FLAG;
+    if (u32Result & 0x10000)
+        iapx86_FlagsRegister |= C_FLAG;
+    if (!((leftOperand^rightOperand)&0x8000)&&((leftOperand^u32Result)&0x8000))
+        iapx86_FlagsRegister |= O_FLAG;
 
     return u16Result;
 }
 
+uint16_t iapx86::Adc16(uint16_t leftOperand, uint16_t rightOperand)
+{
+    uint32_t u32Result = leftOperand + rightOperand + startCycleCarryFlag;
+    uint16_t u16Result = (uint16_t)u32Result;
+
+    /* Flags Affected: AF, CF, OF, PF, SF, ZF */
+    iapx86_FlagsRegister &= ~0x08D5;
+    iapx86_FlagsRegister |= pzsTable16[u16Result&0xFFFF];
+    if (((leftOperand&0xF)+(rightOperand&0xF))&0x10)
+        iapx86_FlagsRegister |= A_FLAG;
+    if (u32Result & 0x10000)
+        iapx86_FlagsRegister |= C_FLAG;
+    if (!((leftOperand^rightOperand)&0x8000)&&((leftOperand^u32Result)&0x8000))
+        iapx86_FlagsRegister |= O_FLAG;
+
+    return u16Result;
+}
+
+uint8_t iapx86::Sub8(uint8_t leftOperand, uint8_t rightOperand)
+{
+    /* SUB (Subtract) :
+     * Operation: The source (rightmost) operand is subtracted from the destination (left-
+     * most) operand and the result is stored in the destination.
+     *
+     *  (DEST) <- (LSRC)-(RSRC)
+     */
+
+    uint16_t result16 = (uint16_t)leftOperand - (uint16_t)rightOperand;
+    uint8_t result8 = (uint8_t)result16;
+
+    /* Flags Affected: AF, CF, OF, PF, SF, ZF */
+    iapx86_FlagsRegister &= ~0x8D5;
+    iapx86_FlagsRegister |= pzsTable8[result8 & 0xFF];
+    if (((leftOperand&0xF)+(rightOperand&0xF))&0x10)
+        iapx86_FlagsRegister |= A_FLAG;
+    if (result16 & 0x100)
+        iapx86_FlagsRegister |= C_FLAG;
+    if (!((leftOperand^rightOperand)&0x80)&&((leftOperand^result16)&0x80))
+        iapx86_FlagsRegister |= O_FLAG;
+
+    return result8;
+}
+
+uint8_t iapx86::Sbb8(uint8_t leftOperand, uint8_t rightOperand)
+{
+    /* SBB (Subtract with borrow) :
+     * Operation: The source (rightmost) operand is subtracted from the destination (left-
+     * most). If the carry flag was set, 1 is subtracted from the above result. The result
+     * replaces the original destination operand.
+     *
+     *  if (CF) = 1 then (DEST) <- (LSRC)-(RSRC)-1
+     *      else (DEST) <- (LSRC)-(RSRC)
+     */
+
+    uint16_t result16 = (uint16_t)leftOperand - (uint16_t)rightOperand - startCycleCarryFlag;
+    uint8_t result8 = (uint8_t)result16;
+
+    /* Flags Affected: AF, CF, OF, PF, SF, ZF */
+    iapx86_FlagsRegister &= ~0x8D5;
+    iapx86_FlagsRegister |= pzsTable8[result8 & 0xFF];
+    if (((leftOperand&0xF)+(rightOperand&0xF))&0x10)
+        iapx86_FlagsRegister |= A_FLAG;
+    if (result16 & 0x100)
+        iapx86_FlagsRegister |= C_FLAG;
+    if (!((leftOperand^rightOperand)&0x80)&&((leftOperand^result16)&0x80))
+        iapx86_FlagsRegister |= O_FLAG;
+
+    return result8;
+}
+
+uint16_t iapx86::Sub16(uint16_t leftOperand, uint16_t rightOperand)
+{
+    uint32_t result32 = (uint32_t)leftOperand - (uint32_t)rightOperand;
+    uint16_t result16 = (uint16_t)result32;
+
+    /* Flags Affected: AF, CF, OF, PF, SF, ZF : */
+    iapx86_FlagsRegister &= ~0x08D5;
+    iapx86_FlagsRegister |= pzsTable16[result16&0xFFFF];
+    if (((leftOperand&0xF)+(rightOperand&0xF))&0x10)
+        iapx86_FlagsRegister |= A_FLAG;
+    if (result32 & 0x10000)
+        iapx86_FlagsRegister |= C_FLAG;
+    if (!((leftOperand^rightOperand)&0x8000)&&((leftOperand^result32)&0x8000))
+        iapx86_FlagsRegister |= O_FLAG;
+
+    return result16;
+}
+
+uint16_t iapx86::Sbb16(uint16_t leftOperand, uint16_t rightOperand)
+{
+    uint32_t result32 = (uint32_t)leftOperand - (uint32_t)rightOperand - startCycleCarryFlag;
+    uint16_t result16 = (uint16_t)result32;
+
+    /* Flags Affected: AF, CF, OF, PF, SF, ZF : */
+    iapx86_FlagsRegister &= ~0x08D5;
+    iapx86_FlagsRegister |= pzsTable16[result16&0xFFFF];
+    if (((leftOperand&0xF)+(rightOperand&0xF))&0x10)
+        iapx86_FlagsRegister |= A_FLAG;
+    if (result32 & 0x10000)
+        iapx86_FlagsRegister |= C_FLAG;
+    if (!((leftOperand^rightOperand)&0x8000)&&((leftOperand^result32)&0x8000))
+        iapx86_FlagsRegister |= O_FLAG;
+
+    return result16;
+}
+
+uint8_t iapx86::Inc8(uint8_t leftOperand, uint8_t rightOperand)
+{
+    /* INC (Increment destination by 1)
+     * Operation: The specified operand is incremented by 1. There is no carry out of the
+     * most-significant bit.
+     *      (DEST) <- (DEST) + 1
+     * CAUTION : 'rightOperand' must be 1.
+     */
+
+    uint16_t result16 = leftOperand + rightOperand;
+    uint8_t result8 = (uint16_t) result16;
+
+    /* Flags Affected: AF, OF, PF, SF, ZF */
+    iapx86_FlagsRegister &= ~0x8D4;
+    iapx86_FlagsRegister |= pzsTable8[result8 & 0xFF];
+    if (((leftOperand&0xF)+(rightOperand&0xF))&0x10)
+        iapx86_FlagsRegister |= A_FLAG;
+    if (!((leftOperand^rightOperand)&0x80)&&((leftOperand^result16)&0x80))
+        iapx86_FlagsRegister |= O_FLAG;
+
+    return result8;
+}
+
+uint16_t iapx86::Inc16(uint16_t leftOperand, uint16_t rightOperand)
+{
+    uint32_t result32 = leftOperand + rightOperand;
+    uint16_t result16 = (uint16_t)result32;
+
+    /* Flags Affected: AF, CF, OF, PF, SF, ZF */
+    iapx86_FlagsRegister &= ~0x08D4;
+    iapx86_FlagsRegister |= pzsTable16[result16&0xFFFF];
+    if (((leftOperand&0xF)+(rightOperand&0xF))&0x10)
+        iapx86_FlagsRegister |= A_FLAG;
+    if (!((leftOperand^rightOperand)&0x8000)&&((leftOperand^result32)&0x8000))
+        iapx86_FlagsRegister |= O_FLAG;
+
+    return result16;
+}
+
+uint8_t iapx86::Dec8(uint8_t leftOperand, uint8_t rightOperand)
+{
+    /* DEC (Decrement destination by one)
+     * Operation: The specified operand is reduced by 1.
+     *      (DEST) <- (DEST)-1
+     * CAUTION : 'rightOperand' must be 1.
+     */
+
+    uint16_t result16 = leftOperand - rightOperand;
+    uint8_t result8 = (uint16_t) result16;
+
+    /* Flags Affected: AF, OF, PF, SF, ZF */
+    iapx86_FlagsRegister &= ~0x8D4;
+    iapx86_FlagsRegister |= pzsTable8[result8 & 0xFF];
+    if (((leftOperand&0xF)+(rightOperand&0xF))&0x10)
+        iapx86_FlagsRegister |= A_FLAG;
+    if (!((leftOperand^rightOperand)&0x80)&&((leftOperand^result16)&0x80))
+        iapx86_FlagsRegister |= O_FLAG;
+
+    return result8;
+}
+
+uint16_t iapx86::Dec16(uint16_t leftOperand, uint16_t rightOperand)
+{
+    uint32_t result32 = leftOperand - rightOperand;
+    uint16_t result16 = (uint16_t)result32;
+
+    /* Flags Affected: AF, CF, OF, PF, SF, ZF */
+    iapx86_FlagsRegister &= ~0x08D4;
+    iapx86_FlagsRegister |= pzsTable16[result16&0xFFFF];
+    if (((leftOperand&0xF)+(rightOperand&0xF))&0x10)
+        iapx86_FlagsRegister |= A_FLAG;
+    if (!((leftOperand^rightOperand)&0x8000)&&((leftOperand^result32)&0x8000))
+        iapx86_FlagsRegister |= O_FLAG;
+
+    return result16;
+}
+
+//= Logics methods ===================================================================================================//
 uint8_t iapx86::Bitwise8(uint8_t leftOperand, uint8_t rightOperand)
 {
-    uint16_t wResult = leftOperand | rightOperand;
-    uint8_t  bResult = (uint8_t)wResult;
-    parityFlag = paritytable_8bits[(uint8_t)wResult & 0xFF];
-    signFlag = 1 == ((bResult >> 7) & 1);
-    zeroFlag = 0 == bResult;
+    uint16_t result16 = leftOperand | rightOperand;
+    uint8_t result8 = (uint16_t) result16;
 
-    carryFlag = false;
-    overflowFlag = false;
+    /* Flags Affected: CF, OF, PF, SF, ZF. */
+    /* Undefined: AF */
+    /* Note : carry and overflow flags are both reset - CF = OF = 0. */
 
-    return bResult;
+    iapx86_FlagsRegister &= ~0x8C5;
+    iapx86_FlagsRegister |= pzsTable8[result8 & 0xFF];
+
+    return result8;
 }
 
 uint16_t iapx86::Bitwise16(uint16_t leftOperand, uint16_t rightOperand)
 {
     uint16_t wResult = leftOperand | rightOperand;
     uint8_t  bResult = (uint8_t)wResult;
-    parityFlag = paritytable_8bits[(uint8_t)wResult & 0xFF];
+    //parityFlag = paritytable_8bits[(uint8_t)wResult & 0xFF];
     signFlag = 1 == ((wResult >> 15) & 1);
     zeroFlag = 0 == bResult;
 
@@ -392,81 +626,6 @@ uint16_t iapx86::Bitwise16(uint16_t leftOperand, uint16_t rightOperand)
     overflowFlag = false;
 
     return wResult;
-}
-
-uint8_t iapx86::AddWc8(uint8_t leftOperand, uint8_t rightOperand)
-{
-    uint16_t result = leftOperand + rightOperand;
-    if (carryFlag) result += 1;
-
-    uint8_t byteResult = (uint8_t)result;
-
-    signFlag = 1 == ((byteResult >> 7) & 1);
-    carryFlag = result > 0xFF;
-    zeroFlag = 0 == byteResult;
-
-    if (!((leftOperand^rightOperand)&0x80)&&((leftOperand^result)&0x80))
-        overflowFlag = true;
-    else
-        overflowFlag = false;
-
-    if (((leftOperand&0xF)+(rightOperand&0xF))&0x10)
-        auxiliaryCarryFlag = true;
-    else
-        auxiliaryCarryFlag = false;
-
-    parityFlag = paritytable_8bits[(uint8_t)result & 0xFF];
-    return byteResult;
-}
-
-uint16_t iapx86::AddWc16(uint16_t leftOperand, uint16_t rightOperand)
-{
-    uint32_t u32Result = leftOperand + rightOperand;
-    if (carryFlag) u32Result += 1;
-
-    uint16_t u16Result = (uint16_t)u32Result;
-
-    signFlag = 1 == ((u16Result >> 15) & 1);
-    zeroFlag = 0 == u16Result;
-
-    if (!((leftOperand^rightOperand)&0x8000)&&((leftOperand^u32Result)&0x8000))
-        overflowFlag = true;
-    else
-        overflowFlag = false;
-
-    if (((leftOperand&0xF)+(rightOperand&0xF))&0x10)
-        auxiliaryCarryFlag = true;
-    else
-        auxiliaryCarryFlag = false;
-
-    carryFlag = u32Result > 0xFFFF;
-
-
-    return u16Result;
-}
-
-uint8_t iapx86::Sbb8(uint8_t leftOperand, uint8_t rightOperand)
-{
-    uint16_t result = leftOperand - rightOperand;
-    uint8_t result8 = (uint8_t) result;
-
-/*
-    uint16_t c = (uint16_t)a - (uint16_t)b;
-    cpu_state.flags &= ~0x8D5;
-    cpu_state.flags |= znptable8[c&0xFF];
-    if (c & 0x100)
-        cpu_state.flags |= C_FLAG;
-    if ((a ^ b) & (a ^ c) & 0x80)
-        cpu_state.flags |= V_FLAG;
-    if (((a & 0xF) - (b & 0xF)) & 0x10)
-        cpu_state.flags |= A_FLAG;
-*/
-
-}
-
-uint16_t iapx86::Sbb16(uint16_t leftOperand, uint16_t rightOperand)
-{
-
 }
 
 //= Main method ======================================================================================================//
@@ -480,6 +639,8 @@ void iapx86::exec86(int requestedCycles)
         iCS = CS; //Saved for debug to screen method.
         iIP = IP; //Saved for debug to screen method.
         IP++;
+        startCycleCarryFlag = iapx86_FlagsRegister & C_FLAG;
+
         (this->*instDecoder[opcode])();
         DebugToScreen();
     }
@@ -516,7 +677,6 @@ void iapx86::ADD_REGb_EAb()
     bRightOperand=ReadByte_EffectiveAddress();
     bResult = Add8(bLeftOperand, bRightOperand);
     WriteByte_Register(bResult);
-
 }
 
 /*-- 0x03 --*/
@@ -761,14 +921,9 @@ void iapx86::JMP_FAR_DIRECT()
     IP = wOffset;
 }
 
-void printFlags()
+void iapx86::PrintFlags()
 {
-    printf("Zero flag : %01X", zeroFlag);
-    printf( " - Carry flag : %01X", carryFlag);
-    printf(" - Sign flag : %01X", signFlag);
-    printf(" - Parity flag : %01X", parityFlag);
-    printf(" - Auxiliary carry flag: %01X", auxiliaryCarryFlag);
-    printf(" - Overflow flag : %01X\n", overflowFlag);
+    printf(" - F/REG : "  BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY(iapx86_FlagsRegister));
 }
 
 void iapx86::DebugToScreen()
@@ -779,19 +934,18 @@ void iapx86::DebugToScreen()
     switch (opcode)
     {
      case 0x00:
-         //printf(" - Left operand at adress %05X : %02X", easeg << 4 | eaaddr, bLeftOperand);
-         //printf(" - Right operand : %02X", bRightOperand);
-         //printf(" - Result : %02X", bResult);
-         printf(" - (%02X + %02X) = %02X",bLeftOperand, bRightOperand, bResult);
-         //printFlags();
+        printf(" - (%02X + %02X) = %02X",bLeftOperand, bRightOperand, bResult);
+        PrintFlags();
         break;
 
     case 0x02:
         printf(" - (%02X + %02X) = %02X",bLeftOperand, bRightOperand, bResult);
+        PrintFlags();
         break;
 
     case 0x04:
         printf(" - (%02X + %02X) = %02X",bLeftOperand, bRightOperand, bResult);
+        PrintFlags();
         break;
 
     case 0xEA:

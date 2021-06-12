@@ -4,7 +4,7 @@
 #include "src/iapx86.h"
 
 int main() {
-    std::cout << "Hello, World!" << std::endl;
+    std::cout << "OHPC Build 005 - Copyright @ PELOILLE Julien - (Tous droits réservés). " << std::endl;
     //cpuReset();
     iapx86 cpu;
     cpu.cpuReset();

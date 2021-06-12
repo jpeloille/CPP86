@@ -1,0 +1,36 @@
+SBB : Subtract with borrow
+
+Operation: The source (rightmost) operand is subtracted from the destination (left-
+most). If the carry flag was set, 1 is subtracted from the above result. The result
+replaces the original destination operand.
+
+if (CF) = 1 then (DEST) <- (LSRC)-(RSRC)-1
+else (DEST) <- (LSRC)-(RSRC)
+
+Memory or Register Operand and Register Operand :
+    if d = 1 then LSRC = REG, RSRC = EA, DEST = REG
+    else LSRC = EA, RSRC = REG, DEST =EA
+
+    Timing (clocks):
+    (a) register from register  3
+    (b) memory from register    9+EA
+    (c) register from memory    16+EA
+
+Immediate Operand from Accumulator:
+    if w = 0 then LSRC = AL, RSRC = data, DEST = AL
+    else LSRC = AX, RSRC = data, DEST = AX
+
+    Timing (clocks): immediate from register 4
+
+Immediate Operand from Memory or Register Operand:
+    LSRC = EA, RSRC = data, DEST = EA
+
+    Timing (clocks):
+    (a) immediate from register     4
+    (b) immediate from memory       17+EA
+
+    If an immediate-data-byte is being subtracted from a register-or-memory word, then
+    that byte is sign-extended to 16 bits prior to the subtraction. For this situation the in-
+    struction byte is 83H (i.e., the s:w bits are both set).
+
+Flags Affected: AF, CF, OF, PF, SF, ZF

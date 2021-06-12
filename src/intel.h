@@ -56,16 +56,19 @@ bool signFlag;
 bool trapFlag;
 bool zeroFlag;
 
-#define CF << 0
-#define PF << 2
-#define AF << 4
-#define ZF << 6
-#define SF << 7
-#define TF << 8
-#define IF << 9
-#define DF << 10
-#define OF << 11
-#define None << 15
-bool iapx86_Flags[16];
+/* FLAGS 0X:0X:0X:0X:(OF):(DF):(lF):(TF) - (SF):(ZF):0X:(AF):0X:(PF):0X:(CF) */
+/* FLAGS 15:14:13:12:(11):(10):(09):(08) - (07):(06):05:(04):03:(02):01:(00) */
+
+#define C_FLAG  0x0001
+#define P_FLAG  0x0004
+#define A_FLAG  0x0010
+#define Z_FLAG  0x0040
+#define S_FLAG  0x0080
+#define T_FLAG  0x0100
+#define I_FLAG  0x0200
+#define D_FLAG  0x0400
+#define O_FLAG  0x0800
+
+uint16_t iapx86_FlagsRegister;
 
 #endif //X86___INTEL_H

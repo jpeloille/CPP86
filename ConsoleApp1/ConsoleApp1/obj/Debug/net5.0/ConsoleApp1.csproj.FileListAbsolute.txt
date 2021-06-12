@@ -1,0 +1,16 @@
+/home/julien/Repositories/ConsoleApp1/ConsoleApp1/bin/Debug/net5.0/ConsoleApp1
+/home/julien/Repositories/ConsoleApp1/ConsoleApp1/bin/Debug/net5.0/ConsoleApp1.deps.json
+/home/julien/Repositories/ConsoleApp1/ConsoleApp1/bin/Debug/net5.0/ConsoleApp1.runtimeconfig.json
+/home/julien/Repositories/ConsoleApp1/ConsoleApp1/bin/Debug/net5.0/ConsoleApp1.runtimeconfig.dev.json
+/home/julien/Repositories/ConsoleApp1/ConsoleApp1/bin/Debug/net5.0/ConsoleApp1.dll
+/home/julien/Repositories/ConsoleApp1/ConsoleApp1/bin/Debug/net5.0/ref/ConsoleApp1.dll
+/home/julien/Repositories/ConsoleApp1/ConsoleApp1/bin/Debug/net5.0/ConsoleApp1.pdb
+/home/julien/Repositories/ConsoleApp1/ConsoleApp1/obj/Debug/net5.0/ConsoleApp1.csproj.AssemblyReference.cache
+/home/julien/Repositories/ConsoleApp1/ConsoleApp1/obj/Debug/net5.0/ConsoleApp1.GeneratedMSBuildEditorConfig.editorconfig
+/home/julien/Repositories/ConsoleApp1/ConsoleApp1/obj/Debug/net5.0/ConsoleApp1.AssemblyInfoInputs.cache
+/home/julien/Repositories/ConsoleApp1/ConsoleApp1/obj/Debug/net5.0/ConsoleApp1.AssemblyInfo.cs
+/home/julien/Repositories/ConsoleApp1/ConsoleApp1/obj/Debug/net5.0/ConsoleApp1.csproj.CoreCompileInputs.cache
+/home/julien/Repositories/ConsoleApp1/ConsoleApp1/obj/Debug/net5.0/ConsoleApp1.dll
+/home/julien/Repositories/ConsoleApp1/ConsoleApp1/obj/Debug/net5.0/ref/ConsoleApp1.dll
+/home/julien/Repositories/ConsoleApp1/ConsoleApp1/obj/Debug/net5.0/ConsoleApp1.pdb
+/home/julien/Repositories/ConsoleApp1/ConsoleApp1/obj/Debug/net5.0/ConsoleApp1.genruntimeconfig.cache
