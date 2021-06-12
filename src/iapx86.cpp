@@ -804,7 +804,7 @@ void iapx86::ADC_EAb_REGb()
     FetchAndDecode_ModRMByte();
     bLeftOperand = ReadByte_EffectiveAddress();
     bRightOperand = ReadByte_Register();
-    bResult = AddWc8(bLeftOperand, bRightOperand);
+    bResult = Adc8(bLeftOperand, bRightOperand);
     WriteByte_EffectiveAddress(bResult);
     cycles-=((mod==3)?3:24);
 }
@@ -815,7 +815,7 @@ void iapx86::ADC_EAw_REGw()
     FetchAndDecode_ModRMByte();
     wLeftOperand = ReadWord_EffectiveAddress();
     wRightOperand = ReadWord_Register();
-    wResult = AddWc16(wLeftOperand, wRightOperand);
+    wResult = Adc16(wLeftOperand, wRightOperand);
     WriteWord_EffectiveAddress(wResult);
     cycles-=((mod==3)?3:24);
 }
@@ -826,7 +826,7 @@ void iapx86::ADC_REGb_EAb()
     FetchAndDecode_ModRMByte();
     bLeftOperand = ReadByte_Register();
     bRightOperand = ReadByte_EffectiveAddress();
-    bResult = AddWc8(bLeftOperand, bRightOperand);
+    bResult = Adc8(bLeftOperand, bRightOperand);
     WriteByte_EffectiveAddress(bResult);
     cycles-=((mod==3)?3:24);
 }
@@ -837,7 +837,7 @@ void  iapx86::ADC_REGw_EAw()
     FetchAndDecode_ModRMByte();
     wLeftOperand = ReadWord_Register();
     wRightOperand = ReadWord_EffectiveAddress();
-    wResult = AddWc16(wLeftOperand, wRightOperand);
+    wResult = Adc16(wLeftOperand, wRightOperand);
     WriteWord_EffectiveAddress(wResult);
     cycles-=((mod==3)?3:24);
 }
@@ -847,7 +847,7 @@ void iapx86::ADC_AL_Data8()
 {
     bLeftOperand = AL;
     bRightOperand = getImmediateByte();
-    bResult = AddWc8(bLeftOperand, bRightOperand);
+    bResult = Adc8(bLeftOperand, bRightOperand);
     AL = bResult;
     cycles-=4;
 }
@@ -857,7 +857,7 @@ void iapx86::ADC_AX_Data16()
 {
     wLeftOperand = AX;
     wRightOperand = getImmediateWord();
-    wResult = AddWc16(wLeftOperand, wRightOperand);
+    wResult = Adc16(wLeftOperand, wRightOperand);
     AX = wResult;
     cycles-=4;
 }
