@@ -77,8 +77,7 @@ private:
     void ADC_AX_Data16();
     void PUSH_SS();
     void POP_SS();
-/*
- *  void SBB_EAb_REGb();
+    void SBB_EAb_REGb();
     void SBB_EAw_REGw();
     void SBB_REGb_EAb();
     void SBB_REGw_EAw();
@@ -86,7 +85,7 @@ private:
     void SBB_AX_Data16();
     void PUSH_DS();
     void POP_DS();
-*/
+
     void mov_AL_ib();
     void mov_rmw_sr();
     void mov_sr_rmw();
@@ -112,8 +111,8 @@ private:
     uint8_t Dec8(uint8_t leftOperand, uint8_t rightOperand);
     uint16_t Dec16(uint16_t leftOperand, uint16_t rightOperand);
 
-    uint8_t  Bitwise8(uint8_t leftOperand, uint8_t rightOperand);
-    uint16_t Bitwise16(uint16_t leftOperand, uint16_t rightOperand);
+    uint8_t  Or8(uint8_t leftOperand, uint8_t rightOperand);
+    uint16_t Or16(uint16_t leftOperand, uint16_t rightOperand);
 
 
 

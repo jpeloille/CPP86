@@ -132,6 +132,7 @@ iapx86::iapx86()
     instDecoder[0x15] = &iapx86::ADC_AX_Data16;
     instDecoder[0x16] = &iapx86::PUSH_SS;
     instDecoder[0x17] = &iapx86::POP_SS;
+
     /*instDecoder[0x18] = &iapx86::SBB_EAb_REGb;
     instDecoder[0x19] = &iapx86::SBB_EAw_REGw;
     instDecoder[0x1A] = &iapx86::SBB_REGb_EAb;
@@ -599,33 +600,48 @@ uint16_t iapx86::Dec16(uint16_t leftOperand, uint16_t rightOperand)
 }
 
 //= Logics methods ===================================================================================================//
-uint8_t iapx86::Bitwise8(uint8_t leftOperand, uint8_t rightOperand)
+uint8_t iapx86::Or8(uint8_t leftOperand, uint8_t rightOperand)
 {
+    /*
+     * OR (Or, inclusive)
+     *
+     * Operation: Each bit position in the destination (leftmost) operand becomes 1,
+     * unless it and the corresponding bit position of the source (rightmost) operand were
+     * both 0. Alternative phrasing: each bit position of the result has a 1 if either operand
+     * had a 1 in that position; if both had a 0, that position of the result has a zero. The
+     * carry and overflow flags are both reset
+     *
+     * (OEST) <- (LSRC) | (RSRC)
+     * (CF) <- 0
+     * (OF) <- 0
+     *
+     * Description: OR performs the bitwise logical inclusive disjunction of the two
+     * operands and returns the result to one of the operands.
+     */
+
     uint16_t result16 = leftOperand | rightOperand;
     uint8_t result8 = (uint16_t) result16;
 
-    /* Flags Affected: CF, OF, PF, SF, ZF. */
-    /* Undefined: AF */
-    /* Note : carry and overflow flags are both reset - CF = OF = 0. */
+    /*
+     * Flags Affected: CF, OF, PF, SF, ZF.
+     * Undefined: AF
+     */
 
-    iapx86_FlagsRegister &= ~0x8C5;
+    iapx86_FlagsRegister &= ~0x8D5;
     iapx86_FlagsRegister |= pzsTable8[result8 & 0xFF];
 
     return result8;
 }
 
-uint16_t iapx86::Bitwise16(uint16_t leftOperand, uint16_t rightOperand)
+uint16_t iapx86::Or16(uint16_t leftOperand, uint16_t rightOperand)
 {
-    uint16_t wResult = leftOperand | rightOperand;
-    uint8_t  bResult = (uint8_t)wResult;
-    //parityFlag = paritytable_8bits[(uint8_t)wResult & 0xFF];
-    signFlag = 1 == ((wResult >> 15) & 1);
-    zeroFlag = 0 == bResult;
+    uint32_t result32 = leftOperand | rightOperand;
+    uint16_t result16 = (uint16_t) result32;
 
-    carryFlag = false;
-    overflowFlag = false;
+    iapx86_FlagsRegister &= ~0x8D5;
+    iapx86_FlagsRegister |= pzsTable16[result16 & 0xFFFF];
 
-    return wResult;
+    return result16;
 }
 
 //= Main method ======================================================================================================//
@@ -732,7 +748,7 @@ void iapx86::OR_EAb_REGb()
     FetchAndDecode_ModRMByte();
     bLeftOperand = ReadByte_EffectiveAddress();
     bRightOperand = ReadByte_Register();
-    bResult = Bitwise8(bLeftOperand, bRightOperand);
+    bResult = Or8(bLeftOperand, bRightOperand);
     WriteByte_EffectiveAddress(bResult);
 
 }
@@ -743,9 +759,8 @@ void iapx86::OR_EAw_REGw()
     FetchAndDecode_ModRMByte();
     wLeftOperand = ReadWord_EffectiveAddress();
     wRightOperand = ReadWord_Register();
-    wResult = Bitwise16(wLeftOperand, wRightOperand);
+    wResult = Or16(wLeftOperand, wRightOperand);
     WriteWord_EffectiveAddress(wResult);
-
 }
 
 /*-- 0x0A --*/
@@ -754,9 +769,8 @@ void iapx86::OR_REGb_EAb()
     FetchAndDecode_ModRMByte();
     bLeftOperand = ReadByte_Register();
     bRightOperand = ReadByte_EffectiveAddress();
-    bResult = Bitwise8(bLeftOperand, bRightOperand);
+    bResult = Or8(bLeftOperand, bRightOperand);
     WriteByte_Register(bResult);
-
 }
 
 /*-- 0x0B --*/
@@ -765,7 +779,7 @@ void iapx86::OR_REGw_EAw()
     FetchAndDecode_ModRMByte();
     wLeftOperand = ReadWord_Register();
     wRightOperand = ReadWord_EffectiveAddress();
-    wResult = Bitwise16(wLeftOperand, wRightOperand);
+    wResult = Or16(wLeftOperand, wRightOperand);
     WriteWord_Register(wResult);
 
 }
@@ -775,7 +789,7 @@ void iapx86::OR_AL_Data8()
 {
     bLeftOperand = AL;
     bRightOperand = getImmediateByte();
-    bResult= Bitwise8(bLeftOperand,bRightOperand);
+    bResult= Or8(bLeftOperand,bRightOperand);
     AL = bResult;
 
 }
@@ -785,7 +799,7 @@ void iapx86::OR_AX_Data16()
 {
     wLeftOperand = AX;
     wRightOperand = getImmediateWord();
-    wResult = Bitwise16(wLeftOperand, wRightOperand);
+    wResult = Or16(wLeftOperand, wRightOperand);
     AX = wResult;
 
 }
@@ -878,7 +892,85 @@ void iapx86::POP_SS()
     cycles-=12;
 }
 
+/*-- 0x18 --*/
+void iapx86::SBB_EAb_REGb()
+{
+    FetchAndDecode_ModRMByte();
+    bLeftOperand = ReadByte_EffectiveAddress();
+    bRightOperand = ReadByte_Register();
+    bResult = Sbb8(bLeftOperand, bRightOperand);
+    WriteByte_EffectiveAddress(bResult);
+    cycles-=((mod==3)?3:24);
+}
 
+/*-- 0x19 --*/
+void iapx86::SBB_EAw_REGw()
+{
+    FetchAndDecode_ModRMByte();
+    wLeftOperand = ReadWord_EffectiveAddress();
+    wRightOperand = ReadWord_Register();
+    wResult = Sbb16(wLeftOperand, wRightOperand);
+    WriteWord_EffectiveAddress(wResult);
+    cycles-=((mod==3)?3:24);
+}
+
+/*-- 0x1A --*/
+void iapx86::SBB_REGb_EAb()
+{
+    FetchAndDecode_ModRMByte();
+    bLeftOperand = ReadByte_Register();
+    bRightOperand = ReadByte_EffectiveAddress();
+    bResult = Sbb8(bLeftOperand, wRightOperand);
+    WriteByte_Register(bResult);
+    cycles-=((mod==3)?3:13);
+}
+
+/*-- 0x1B --*/
+void iapx86::SBB_REGw_EAw()
+{
+    FetchAndDecode_ModRMByte();
+    wLeftOperand = ReadWord_Register();
+    wRightOperand = ReadWord_EffectiveAddress();
+    wResult = Sbb16(wLeftOperand, wRightOperand);
+    WriteWord_Register(wResult);
+    cycles-=((mod==3)?3:13);
+}
+
+/*-- 0x1C --*/
+void iapx86::SBB_AL_Data8()
+{
+    bLeftOperand = AL;
+    bRightOperand = getImmediateByte();
+    bResult = Sbb8(bLeftOperand, bRightOperand);
+    AL = bResult;
+    cycles -= 4;
+}
+
+/*-- 0x1D --*/
+void iapx86::SBB_AX_Data16()
+{
+    wLeftOperand = AX;
+    wRightOperand = getImmediateWord();
+    wResult = Sbb8(wLeftOperand, wRightOperand);
+    AX = wResult;
+    cycles -= 4;
+}
+
+/*-- 0x1E --*/
+void iapx86::PUSH_DS()
+{
+    SP -= 2;
+    WriteWord_Memory(SS << 4 | SP, DS);
+    cycles -= 14;
+}
+
+/*-- 0x1F --*/
+void iapx86::POP_DS()
+{
+    DS = ReadWord_Memory(SS << 4 | SP);
+    SP += 2;
+    cycles-=12;
+}
 
 void  iapx86::mov_AL_ib()
 {
